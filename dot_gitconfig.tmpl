@@ -1,0 +1,42 @@
+[user]
+  email = afri@afri.cz
+  name = Petr Muller
+[alias]
+  co = checkout
+  lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+  rb = rebase
+  dt = difftool
+  st = status
+  authors = shortlog -s -n -e
+  tree = log --oneline --decorate --graph
+  publish = "!f() { git push --set-upstream origin $(git symbolic-ref --short HEAD);}; f"
+  github-sync = !git checkout master && git fetch --all && git merge upstream/master && git push
+  kick = "!f(){ git fetch upstream && git checkout upstream/master && git checkout -b $1; }; f"
+  in = "!f(){ git fetch $1; git co $1/master; }; f"
+[color]
+  branch = true
+  diff = true
+  interactive = true
+  status = true
+  ui = true
+[merge]
+  tool = vimdiff
+[diff]
+  tool = vimdiff
+[difftool]
+  prompt = false
+[pager]
+  diff =
+[push]
+  default = simple
+[rebase]
+  autostash = true
+[stash]
+  showpatch = true
+[gitreview]
+  remote = origin
+[core]
+  editor = vim
+  excludesfile = {{ .chezmoi.homedir }}/.gitignore_global
+[includeIf "gitdir:{{ .chezmoi.homedir }}/Projects/RH/**"]
+  path = .gitconfig-redhat
