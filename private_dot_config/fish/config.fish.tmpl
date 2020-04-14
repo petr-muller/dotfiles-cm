@@ -27,6 +27,14 @@ set -gx GOPATH {{ .chezmoi.homedir }}/Projects/RH/go
 set -gx PATH $PATH $GOPATH/bin
 
 # The next line updates PATH for the Google Cloud SDK.
-if [ -f "{{ .chezmoi.homedir }}/Applications/google-cloud-sdk/path.fish.inc" ]; . "{{ .chezmoi.homedir }}/Applications/google-cloud-sdk/path.fish.inc"; end
+if [ -f "{{ .chezmoi.homedir }}/Applications/google-cloud-sdk/path.fish.inc" ]
+    source "{{ .chezmoi.homedir }}/Applications/google-cloud-sdk/path.fish.inc"
+end
+
+# opam configuration
+if [ -f "{{ .chezmoi.homedir }}/.opam/opam-init/init.fish" ]
+    source {{ .chezmoi.homedir }}/.opam/opam-init/init.fish > /dev/null 2> /dev/null; or true
+end
+
 
 starship init fish | source
