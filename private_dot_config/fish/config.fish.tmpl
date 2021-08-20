@@ -1,6 +1,46 @@
-# function fish_prompt
-#     powerline-shell --shell bare $status
-# end
+function hive
+  oc --context hive $argv
+end
+
+function apici
+  oc --context api.ci $argv
+end
+
+function appci
+  oc --context app.ci $argv
+end
+
+function b01
+  oc --context build01 $argv
+end
+
+function b02
+  oc --context build02 $argv
+end
+
+function gp
+  git push
+end
+
+function gpf
+  git push --force
+end
+
+function c
+  git commit
+end
+
+function ca
+  git commit --amend
+end
+
+function k
+  git kick
+end
+
+function ginu
+  git in upstream
+end
 
 function pjw
   set PJ $argv[1]
@@ -23,18 +63,16 @@ end
 
 source /usr/share/autojump/autojump.fish
 
-set -gx GOPATH {{ .chezmoi.homedir }}/Projects/RH/go
+set -gx GOPATH {{ .chezmoi.homeDir }}/Projects/RH/go
 set -gx PATH $PATH $GOPATH/bin
+set -gx EDITOR vim
 
 # The next line updates PATH for the Google Cloud SDK.
-if [ -f "{{ .chezmoi.homedir }}/Applications/google-cloud-sdk/path.fish.inc" ]
-    source "{{ .chezmoi.homedir }}/Applications/google-cloud-sdk/path.fish.inc"
+if [ -f "{{ .chezmoi.homeDir }}/Applications/google-cloud-sdk/path.fish.inc" ]
+    source "{{ .chezmoi.homeDir }}/Applications/google-cloud-sdk/path.fish.inc"
 end
 
 # opam configuration
-if [ -f "{{ .chezmoi.homedir }}/.opam/opam-init/init.fish" ]
-    source {{ .chezmoi.homedir }}/.opam/opam-init/init.fish > /dev/null 2> /dev/null; or true
-end
 
 
 starship init fish | source

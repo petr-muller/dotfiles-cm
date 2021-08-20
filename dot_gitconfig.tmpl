@@ -37,6 +37,6 @@
   remote = origin
 [core]
   editor = vim
-  excludesfile = {{ .chezmoi.homedir }}/.gitignore_global
-[includeIf "gitdir:{{ .chezmoi.homedir }}/Projects/RH/**"]
+  excludesfile = {{ .chezmoi.homeDir }}/.gitignore_global
+[includeIf "gitdir:{{ .chezmoi.homeDir }}/Projects/RH/**"]
   path = .gitconfig-redhat
