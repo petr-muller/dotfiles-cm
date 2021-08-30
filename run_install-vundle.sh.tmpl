@@ -1,0 +1,6 @@
+#!/bin/bash
+
+if [[ ! -d {{ .chezmoi.homeDir }}/.vim/bundle/Vundle.vim ]]; then
+  mkdir -p {{ .chezmoi.homeDir }}/.vim/bundle
+  git clone https://github.com/VundleVim/Vundle.vim.git {{ .chezmoi.homeDir }}/.vim/bundle/Vundle.vim
+fi
