@@ -19,7 +19,7 @@ Bundle 'wakatime/vim-wakatime'
 " UI Enhancements
 
 " Airline: Improved VIM status line
-Plugin 'bling/vim-airline'
+Plugin 'vim-airline/vim-airline'
 " Airline Themes: SSIA
 Plugin 'vim-airline/vim-airline-themes'
 " NerdTree: File explorer
