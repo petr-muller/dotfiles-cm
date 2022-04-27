@@ -80,7 +80,7 @@ if [ -f "{{ .chezmoi.homeDir }}/Applications/google-cloud-sdk/path.fish.inc" ]
     source "{{ .chezmoi.homeDir }}/Applications/google-cloud-sdk/path.fish.inc"
 end
 
-# opam configuration
-
+alias grep="rg"
+alias ls="lsd"
 
 starship init fish | source
