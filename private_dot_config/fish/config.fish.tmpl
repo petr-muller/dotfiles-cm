@@ -73,6 +73,7 @@ source /usr/share/autojump/autojump.fish
 
 set -gx GOPATH {{ .chezmoi.homeDir }}/Projects/RH/go
 set -gx PATH $PATH $GOPATH/bin
+set -gx PATH $PATH {{ .chezmoi.homeDir }}/.local/bin
 set -gx EDITOR vim
 
 # The next line updates PATH for the Google Cloud SDK.
