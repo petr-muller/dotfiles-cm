@@ -11,7 +11,7 @@
   tree = log --oneline --decorate --graph
   publish = "!f() { git push --set-upstream origin $(git symbolic-ref --short HEAD);}; f"
   github-sync = !git checkout master && git fetch --all && git merge upstream/master && git push
-  kick = "!f(){ git fetch upstream && git checkout upstream/master && git checkout -b $1; }; f"
+  kick = "!f(){ git fetch upstream && ( git checkout upstream/master || git checkout upstream/main ) && git checkout -b $1; }; f"
   in = "!f(){ git fetch $1; git co $1/master; }; f"
 [color]
   branch = true
