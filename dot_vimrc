@@ -80,11 +80,6 @@ Plugin 'junegunn/fzf'
 " VimWiki: Wiki for vim (experiment to set up a PKB)
 Plugin 'vimwiki/vimwiki'
 
-" Go
-
-" Go: Go development plugin for Go
-Plugin  'fatih/vim-go'
-
 " Themes
 
 " Solarized: Precision colors for machines and people
@@ -231,21 +226,6 @@ au BufNewFile,BufRead *.py:
 " Use local .pylintrc and Python3 for syntastic
 let g:syntastic_python_pylint_args = "--rcfile=.pylintrc"
 let g:syntastic_python_python_exec = '/usr/bin/python3'
-
-" Go
-autocmd FileType go nmap <leader>b :make<CR>
-autocmd FileType go nmap <leader>t :GoTest<CR>
-autocmd FileType go nmap <leader>c :GoCoverageToggle<CR>
-autocmd FileType go nmap <leader>a :GoAlternate<CR>
-autocmd FileType go nmap <leader>d :GoDoc<CR>
-autocmd Filetype go command! -bang AV call go#alternate#Switch(<bang>0, 'vsplit')
-" Use both `gofmt` and `golint` in Syntastic
-let g:syntastic_go_checkers = ['gofmt', 'golint']
-" Nicer syntax highlights
-let g:go_highlight_types = 1
-let g:go_highlight_fields = 1
-let g:go_highlight_functions = 1
-let g:go_auto_sameids = 1
 
 
 " Emoji ☺
