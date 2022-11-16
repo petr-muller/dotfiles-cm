@@ -65,6 +65,8 @@ Plugin 'tomtom/tcomment_vim'
 Plugin 'Townk/vim-autoclose'
 " SplitJoin: Toggle between single-line and multi-line code
 Plugin 'AndrewRadev/splitjoin.vim'
+" VimFish: Support for fish shell script editing
+Plugin 'dag/vim-fish'
 
 " Integrations
 
