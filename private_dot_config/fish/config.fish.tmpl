@@ -18,10 +18,22 @@ function workon
     source $workdir/helpers.fish
   end
 
-  if test -f $workdir/notes.md
-    gum style --foreground='#2E2' --bold "Showing notes.md"
-    glow $workdir/notes.md
+  set -f notes $workdir/notes.md
+
+  if ! test -f $notes
+    echo "# Useful Links" > $notes
+    echo "" >> $notes
+    echo "# TODOs" >> $notes
+    echo "" >> $notes
+    echo "- [ ] TODO" >> $notes
+    echo "" >> $notes
+    echo "# Journal" >> $notes
+    echo "" >> $notes
+    echo "## Somember 01, 2023" >> $notes
   end
+
+  gum style --foreground='#2E2' --bold "Showing notes.md"
+  glow $notes
 
   function fish_title --inherit-variable=item
     echo $item
