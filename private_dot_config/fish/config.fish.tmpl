@@ -29,11 +29,11 @@ function workon
     echo "" >> $notes
     echo "# Journal" >> $notes
     echo "" >> $notes
-    echo "## Somember 01, 2023" >> $notes
+    echo "## "(date '+%B %d, %Y') >> $notes
   end
 
   gum style --foreground='#2E2' --bold "Showing notes.md"
-  glow $notes
+  glow $notes --width 120
 
   function fish_title --inherit-variable=item
     echo $item
