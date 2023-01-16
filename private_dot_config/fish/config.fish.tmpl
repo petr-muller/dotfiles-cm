@@ -4,6 +4,30 @@ set CLUSTER_BOT_EXTRACTED_PAYLOAD {{ .chezmoi.homeDir }}/Temporary/cluster-bot-p
 set -gx REGISTRY_AUTH_PREFERENCE podman
 set -gx CONTAINER_ENGINE podman
 
+set -g blue "#268BD2"
+set -g green "#859900"
+set -g red "#DC322F"
+
+function header
+  gum style --foreground=$blue --bold --border rounded --align=center --padding "0 2" --border-foreground=$blue $argv[1]
+end
+
+function pass
+  set -f marker "$(gum style --foreground=$green --bold --border thick --border-foreground=$green PASS)"
+  set -f message "$(gum style --foreground=$green --bold --padding "0 2" $argv[1])"
+  gum join --horizontal --align=center "$marker" "$message"
+end
+
+function fail
+  set -f marker "$(gum style --foreground=$red --bold --border thick --border-foreground=$red FAIL)"
+  set -f message "$(gum style --foreground=$red --bold --padding "0 2" $argv[1])"
+  gum join --horizontal --align=center "$marker" "$message"
+end
+
+function ciart
+  string replace 'https://prow.ci.openshift.org/view/gs/' 'gs://' $argv[1]
+end
+
 function asjira
   open https://issues.redhat.com/browse/(basename (pwd))
 end
