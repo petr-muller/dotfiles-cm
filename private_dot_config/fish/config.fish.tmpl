@@ -124,6 +124,14 @@ function b04
   oc --context build04 $argv
 end
 
+function ota-stage
+  oc --context ota-stage $argv
+end
+
+function cluster-bot
+  oc --kubeconfig {{ .chezmoi.homeDir }}/Temporary/cluster-bot-kubeconfig $argv
+end
+
 function gp
   git push
 end

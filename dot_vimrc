@@ -28,8 +28,6 @@ Plugin 'scrooloose/nerdtree'
 Plugin 'Xuyuanp/nerdtree-git-plugin'
 " TagBar: Tag explorer
 Plugin 'majutsushi/tagbar'
-" Limelight: Highlight current paragraph
-Plugin 'junegunn/limelight.vim'
 
 " Shortcuts
 " Unimpaired: Handy bracket mappings
@@ -167,6 +165,7 @@ set foldlevel=99
 " I am using terminals with dark background themes
 set background=dark
 " Solarized color theme
+let g:solarized_termcolors=256
 colorscheme solarized
 " Use emoji as git gutter signs
 let g:gitgutter_sign_added = emoji#for('small_blue_diamond')
@@ -204,10 +203,6 @@ let g:airline_theme='solarized'
 let NERDTreeQuitOnOpen = 1
 " Show less clutter
 let NERDTreeMinimalUI = 1
-
-" Limelight
-let g:limelight_conceal_ctermfg = 'gray'
-let g:limelight_default_coefficient = 0.9
 
 " Systastic
 " Populate loclist automatically, not just on :Errors
