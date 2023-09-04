@@ -96,6 +96,28 @@ function prepare-local-cvo
   oc get deployments -n openshift-cluster-version
 end
 
+function mock-cincinnati-on-clusterbot
+  set -f GRAPHDATA_GIST 900d7aca629e5627abab695941b00a36
+  set -f cb_apisever (oc config view --minify -o jsonpath='{.clusters[*].cluster.server}')
+  if ! string match 'https://api.ci-ln-*' $cb_apisever
+    set -f ctx (oc config view --minify -o jsonpath='{.current-context}')
+    echo "This (context=$ctx) does not seem to be a Cluster Bot cluster"
+    return 1
+  end
+
+  set -f cb_cluster_version (oc get clusterversion version -o jsonpath={.status.desired.version})
+  set -f cb_cluster_image (oc get clusterversion version -o jsonpath={.status.desired.image})
+  gh gist view $GRAPHDATA_GIST --raw --filename cincinnati-graph-data-template.json | sed -e "s|CLUSTER-BOT-VERSION|$cb_cluster_version|g" -e "s|CLUSTER-BOT-PAYLOAD|$cb_cluster_image|g" > /tmp/cluster-bot-$cb_cluster_version.json
+  gh gist edit $GRAPHDATA_GIST --add /tmp/cluster-bot-$cb_cluster_version.json
+
+  set -x fake_cincinnati https://gist.githubusercontent.com/petr-muller/$GRAPHDATA_GIST/raw/cluster-bot-$cb_cluster_version.json
+
+  oc patch clusterversion version --patch '{"spec":{"upstream":"'"$fake_cincinnati"'"{{ "}}" }}' --type=merge
+  oc adm upgrade channel test
+  sleep 3
+  oc get clusterversion version -o jsonpath={.status.conditionalUpdates} | jq
+end
+
 function hive
   oc --context hive $argv
 end
