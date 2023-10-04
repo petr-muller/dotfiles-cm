@@ -40,3 +40,5 @@
   excludesfile = {{ .chezmoi.homeDir }}/.gitignore_global
 [includeIf "gitdir:{{ .chezmoi.homeDir }}/Projects/RH/**"]
   path = .gitconfig-redhat
+[advice]
+  detachedHead = false
