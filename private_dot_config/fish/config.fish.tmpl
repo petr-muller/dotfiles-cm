@@ -122,7 +122,7 @@ function mock-cincinnati-on-clusterbot
   gh gist view $GRAPHDATA_GIST --raw --filename $GISTFILE | sed -e "s|CLUSTER-BOT-VERSION|$cb_cluster_version|g" -e "s|CLUSTER-BOT-PAYLOAD|$cb_cluster_image|g" > /tmp/cluster-bot-$cb_cluster_version.json
   gh gist edit $GRAPHDATA_GIST --add /tmp/cluster-bot-$cb_cluster_version.json
 
-  set -x fake_cincinnati https://gist.githubusercontent.com/petr-muller/$GRAPHDATA_GIST/raw/cluster-bot-$cb_cluster_version.json
+  set -x fake_cincinnati "https://gist.githubusercontent.com/petr-muller/$GRAPHDATA_GIST/raw/cluster-bot-$cb_cluster_version.json?cachebust="(random)
 
   oc patch clusterversion version --patch '{"spec":{"upstream":"'"$fake_cincinnati"'"}}' --type=merge
   oc adm upgrade channel test
