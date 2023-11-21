@@ -125,9 +125,39 @@ function mock-cincinnati-on-clusterbot
   set -x fake_cincinnati "https://gist.githubusercontent.com/petr-muller/$GRAPHDATA_GIST/raw/cluster-bot-$cb_cluster_version.json?cachebust="(random)
 
   oc patch clusterversion version --patch '{"spec":{"upstream":"'"$fake_cincinnati"'"}}' --type=merge
-  oc adm upgrade channel test
-  sleep 3
+  sleep 5
+  oc adm upgrade channel test --allow-explicit-channel
+  sleep 5
 end
+
+function cluster-bot-helpers
+  set -gx CLUSTER_BOT_APISERVER (oc config view --minify -o jsonpath='{.clusters[*].cluster.server}')
+  if ! string match 'https://api.ci-ln-*' $CLUSTER_BOT_APISERVER
+    set -f ctx (oc config view --minify -o jsonpath='{.current-context}')
+    echo "This (context=$ctx) does not seem to be a Cluster Bot cluster"
+    return 1
+  end
+
+  echo "Input token"
+  read -gx CLUSTER_BOT_TOKEN
+  set -gx CLUSTER_BOT_PROMETHEUS https://(oc get route -n openshift-monitoring prometheus-k8s -o jsonpath={.spec.host})
+  set -gx CLUSTER_BOT_ALERTMANAGER https://(oc get route -n openshift-monitoring alertmanager-main -o jsonpath={.spec.host})
+end
+
+function cluster-bot-trace-update
+  while true
+    if test -e DONE
+      return
+    end
+    set -f NOW (date -Iseconds)
+    echo "Got trace on $NOW"
+    mkdir $NOW
+    oc get clusterversion version -o yaml > $NOW/cv.yaml
+    oc get clusteroperators -o yaml > $NOW/co.yaml
+    sleep 10
+  end
+end
+
 
 set -g fish_greeting
 
