@@ -1,0 +1,10 @@
+[user]
+  email = muller@redhat.com
+  name = Petr Muller
+{{ if eq .chezmoi.hostname "slacker" -}}
+[init]
+  templateDir = {{ .chezmoi.homeDir }}/.git-template
+[rh-pre-commit]
+	enableLocalConfig = false
+	checkSecrets = true
+{{ end -}}
