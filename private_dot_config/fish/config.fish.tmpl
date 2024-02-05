@@ -72,6 +72,30 @@ function workon
   end
 end
 
+function cvo-cluster-bot
+  set -fx KUBECONFIG {{ .chezmoi.homeDir }}/Temporary/cluster-bot-kubeconfig
+  set -f cb_apisever (oc config view --minify -o jsonpath='{.clusters[*].cluster.server}')
+  if ! string match 'https://api.ci-ln-*' $cb_apisever
+    set -f ctx (oc config view --minify -o jsonpath='{.current-context}')
+    echo "This (context=$ctx) does not seem to be a Cluster Bot cluster"
+    return 1
+  end
+
+  set -fx NODE_NAME foobar
+  set -fx PAYLOAD_OVERRIDE {{ .chezmoi.homeDir }}/Temporary/cluster-bot-payload
+  set -f cb_version (cat $PAYLOAD_OVERRIDE/release-manifests/release-metadata | jq -r .version)
+
+  oc delete lease version -n openshift-cluster-version
+
+  go build ./...
+  go run ./cmd -v2 start --release-image=$cb_version --listen="" > cvo-(date -Iseconds).log 2>&1 &
+  set -f cvo_pid $last_pid
+
+  echo Waiting for 300 seconds
+  sleep 300
+  kill --signal INT $cvo_pid
+end
+
 function prepare-local-cvo
   header "Preparing $KUBECONFIG and $CLUSTER_BOT_KUBECONFIG"
   set -f kubeconfig $argv[1]
@@ -259,5 +283,3 @@ alias ls="lsd"
 alias cat="bat"
 
 starship init fish | source
-
-thefuck --alias | source
