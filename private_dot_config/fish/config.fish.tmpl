@@ -3,7 +3,6 @@ set -gx DID_DIR {{ .chezmoi.homeDir }}/.config/did
 set CLUSTER_BOT_KUBECONFIG {{ .chezmoi.homeDir }}/Temporary/cluster-bot-kubeconfig
 set CLUSTER_BOT_EXTRACTED_PAYLOAD {{ .chezmoi.homeDir }}/Temporary/cluster-bot-payload
 
-set -gx REGISTRY_AUTH_PREFERENCE podman
 set -gx CONTAINER_ENGINE podman
 
 set -g blue "#268BD2"
@@ -23,6 +22,12 @@ end
 function fail
   set -f marker "$(gum style --foreground=$red --bold --border thick --border-foreground=$red FAIL)"
   set -f message "$(gum style --foreground=$red --bold --padding "0 2" $argv[1])"
+  gum join --horizontal --align=center "$marker" "$message"
+end
+
+function info
+  set -f marker "$(gum style --foreground=$blue --bold --border thick --border-foreground=$blue INFO)"
+  set -f message "$(gum style --foreground=$blue --bold --padding "0 2" $argv[1])"
   gum join --horizontal --align=center "$marker" "$message"
 end
 
@@ -120,6 +125,55 @@ function prepare-local-cvo
   oc get deployments -n openshift-cluster-version
 end
 
+function replace-cvo-on-clusterbot
+  set -f cb_apisever (oc config view --minify -o jsonpath='{.clusters[*].cluster.server}')
+  if ! string match 'https://api.ci-ln-*' $cb_apisever
+    set -f ctx (oc config view --minify -o jsonpath='{.current-context}')
+    echo "This (context=$ctx) does not seem to be a Cluster Bot cluster"
+    return 1
+  end
+  set -x REPO quay.io/petr-muller
+
+  header "Build and push development CVO image"
+
+  if ./hack/build-image.sh
+    pass "Build CVO image"
+  else
+    fail "Build CVO image"
+    return
+  end
+
+  if ./hack/push-image.sh
+    pass "Push CVO image"
+  else
+    fail "Push CVO image"
+    return
+  end
+
+  header "Build and publish development release payload image"
+  set -fx cb_payload ( oc get clusterversion version -o jsonpath={.status.desired.image} )
+  info "Cluster payload image: $cb_payload"
+  set -fx payload_id (openssl rand -hex 6)
+  set -fx payload_image $REPO/ocp-release:$payload_id
+
+  if oc adm release new --from-release=$cb_payload --to-image-base=$REPO/origin-cluster-version-operator:latest --to-image=$payload_image
+    pass "Build and publish payload image"
+  else
+    fail "Build and publish payload image"
+    return
+  end
+
+  header "Replace CVO with development release payload image"
+  set -fx imagePatch '{"op":"replace","path":"/spec/template/spec/containers/0/image","value":"'"$payload_image"'"}'
+  set -fx releaseImageArgPatch '{"op":"replace","path":"/spec/template/spec/containers/0/args/1","value":"--release-image='"$payload_image"'"}'
+  if oc patch -n openshift-cluster-version deployment cluster-version-operator --type json --patch="[$imagePatch,$releaseImageArgPatch]"
+    pass "Replace CVO"
+  else
+    fail "Replace CVO"
+    return
+  end
+end
+
 function mock-cincinnati-on-clusterbot
   set -f GRAPHDATA_GIST 900d7aca629e5627abab695941b00a36
   if [ "$argv[1]" = "" ]
@@ -211,6 +265,10 @@ end
 
 function b04
   oc --context build04 $argv
+end
+
+function b05
+  oc --context build05 $argv
 end
 
 function ota-stage
