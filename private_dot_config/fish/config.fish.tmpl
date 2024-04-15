@@ -275,6 +275,10 @@ function ota-stage
   oc --context ota-stage $argv
 end
 
+function ocmg
+  oc --context must-gather $argv
+end
+
 function cluster-bot
   oc --kubeconfig {{ .chezmoi.homeDir }}/Temporary/cluster-bot-kubeconfig $argv
 end
