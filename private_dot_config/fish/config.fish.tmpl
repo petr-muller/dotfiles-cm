@@ -230,8 +230,11 @@ function cluster-bot-trace-update
     set -f NOW (date -Iseconds)
     echo "Got trace on $NOW"
     mkdir $NOW
-    oc get clusterversion version -o yaml > $NOW/cv.yaml
-    oc get clusteroperators -o yaml > $NOW/co.yaml
+    oc get clusterversion version -o yaml > $NOW/b01-cv.yaml
+    oc get clusteroperators -o yaml > $NOW/b01-co.yaml
+    oc get machineconfigs -o yaml > $NOW/b01-mc.yaml
+    oc get machineconfigpools -o yaml > $NOW/b01-mcp.yaml
+    oc get nodes -o yaml > $NOW/b01-node.yaml
     sleep 10
   end
 end
