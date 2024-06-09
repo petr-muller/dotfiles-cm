@@ -222,6 +222,11 @@ function cluster-bot-helpers
   set -gx CLUSTER_BOT_ALERTMANAGER https://(oc get route -n openshift-monitoring alertmanager-main -o jsonpath={.spec.host})
 end
 
+function cluster-bot-override-ca
+  cat ~/Temporary/cluster-bot-kubeconfig | yq .clusters[0].cluster.certificate-authority-data | base64 -d > ~/Temporary/cluster-bot-certs.crt
+  set -gx SSL_CERT_FILE ~/Temporary/cluster-bot-certs.crt
+end
+
 function cluster-bot-trace-update
   while true
     if test -e DONE
