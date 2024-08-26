@@ -341,7 +341,7 @@ set -gx PATH $PATH $GOPATH/bin
 set -gx PATH $PATH {{ .chezmoi.homeDir }}/.local/bin
 fish_add_path {{ .chezmoi.homeDir }}/.cargo/bin
 fish_add_path {{ .chezmoi.homeDir }}/Applications/bin
-set -gx EDITOR vim
+set -gx EDITOR hx
 
 # The next line updates PATH for the Google Cloud SDK.
 if [ -f "{{ .chezmoi.homeDir }}/Applications/google-cloud-sdk/path.fish.inc" ]
