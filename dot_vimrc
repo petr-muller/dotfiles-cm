@@ -66,20 +66,6 @@ Plugin 'AndrewRadev/splitjoin.vim'
 " VimFish: Support for fish shell script editing
 Plugin 'dag/vim-fish'
 
-" Integrations
-
-" Fugitive: git integration
-Plugin 'tpope/vim-fugitive'
-" Git Log Viewer: better git log integration
-Plugin 'kablamo/vim-git-log'
-" Git Gutter
-Plugin 'airblade/vim-gitgutter'
-" FuzzyFinder: Well, fuzzy finder
-Plugin 'junegunn/fzf.vim'
-Plugin 'junegunn/fzf'
-" VimWiki: Wiki for vim (experiment to set up a PKB)
-Plugin 'vimwiki/vimwiki'
-
 " Themes
 
 " Solarized: Precision colors for machines and people
