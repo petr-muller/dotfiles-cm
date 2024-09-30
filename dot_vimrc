@@ -24,10 +24,6 @@ Plugin 'vim-airline/vim-airline'
 Plugin 'vim-airline/vim-airline-themes'
 " NerdTree: File explorer
 Plugin 'scrooloose/nerdtree'
-" NerdTree Git: Show git status flags in NerdTree
-Plugin 'Xuyuanp/nerdtree-git-plugin'
-" TagBar: Tag explorer
-Plugin 'majutsushi/tagbar'
 
 " Shortcuts
 " Unimpaired: Handy bracket mappings
@@ -36,19 +32,11 @@ Plugin 'tpope/vim-unimpaired'
 Plugin 'tpope/vim-repeat'
 " Textobj User: Create new text object (prerequisite for `vim-textobj-quote`)
 Plugin 'kana/vim-textobj-user'
-" Buffergator: List, select and switch between buffers
-Plugin 'jeetsukumaran/vim-buffergator'
-" Emoji: ¯\_(ツ)_/¯
-Plugin 'junegunn/vim-emoji'
 
 " General syntax helpers
 
 " Rainbow: Colorize paired elements, such as parentheses
 Plugin 'luochen1990/rainbow'
-" Tabular: Aligning text elements to each other, such as for tables
-Plugin 'godlygeek/tabular'
-" Syntastic: Syntax checking
-Plugin 'scrooloose/syntastic'
 " Surround: Quoting and parenthesizing made simple
 Plugin 'tpope/vim-surround'
 " AnsiEsc: Conceal & highlight ANSI sequences
@@ -61,8 +49,6 @@ Plugin 'reedes/vim-textobj-quote'
 Plugin 'tomtom/tcomment_vim'
 " Autoclose: Automatically insert open/close characters
 Plugin 'Townk/vim-autoclose'
-" SplitJoin: Toggle between single-line and multi-line code
-Plugin 'AndrewRadev/splitjoin.vim'
 " VimFish: Support for fish shell script editing
 Plugin 'dag/vim-fish'
 
@@ -153,11 +139,6 @@ set background=dark
 " Solarized color theme
 let g:solarized_termcolors=256
 colorscheme solarized
-" Use emoji as git gutter signs
-let g:gitgutter_sign_added = emoji#for('small_blue_diamond')
-let g:gitgutter_sign_modified = emoji#for('small_orange_diamond')
-let g:gitgutter_sign_removed = emoji#for('small_red_triangle')
-let g:gitgutter_sign_modified_removed = emoji#for('collision')
 " Highlight trailing whitespace
 :highlight RedundantSpaces ctermbg=red guibg=red
 :match RedundantSpaces /\s\+$\| \+\ze\t/
