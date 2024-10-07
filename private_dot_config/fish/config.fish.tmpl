@@ -291,6 +291,21 @@ function cluster-bot
   oc --kubeconfig {{ .chezmoi.homeDir }}/Temporary/cluster-bot-kubeconfig $argv
 end
 
+function oc-login-token
+  echo "== Known contexts:"
+  oc config get-contexts; or return
+  read -P "== Context: " context; or return
+  oc config get-contexts $context >/dev/null; or return
+  set cluster (oc config view -o yaml | yq '.contexts[] | select(.name=="'$context'").context.cluster'); or return
+  set apiurl (oc config view -o yaml | yq '.clusters[] | select(.name=="'$cluster'").cluster.server'); or return
+  set oauth (string replace 'https://api.' 'https://oauth-openshift.apps.' $apiurl); or return
+  set oauth (string replace -r ':\d+' '/oauth/token/request' $oauth); or return
+  open $oauth; or return
+  set user (oc config view -o yaml | yq '.contexts[] | select(.name=="'$context'").context.user'); or return
+  read -P "== New token for $user: " token; or return
+  oc config set-credentials $user --token=$token
+end
+
 function gp
   git push
 end
