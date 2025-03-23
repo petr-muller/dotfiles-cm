@@ -48,6 +48,7 @@
   editor = hx
   excludesfile = {{ .chezmoi.homeDir }}/.gitignore_global
   pager = diff-so-fancy | less --tabs=4 -RF
+  fsmonitor = true
 [includeIf "gitdir:{{ .chezmoi.homeDir }}/Projects/RH/**"]
   path = .gitconfig-redhat
 [advice]
