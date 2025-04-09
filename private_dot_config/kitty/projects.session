@@ -1,0 +1,15 @@
+cd ~/Projects/RH/go/src/github.com/openshift/api
+title api
+launch fish
+
+new_tab cvo
+cd ~/Projects/RH/github.com/openshift/cluster-version-operator/
+launch fish
+
+new_tab prow
+cd ~/Projects/RH/github.com/kubernetes-sigs/prow/
+launch fish
+
+new_tab oc
+cd ~/Projects/RH/github.com/openshift/oc/
+launch fish
