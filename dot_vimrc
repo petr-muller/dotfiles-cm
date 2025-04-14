@@ -187,14 +187,6 @@ au BufNewFile,BufRead *.py:
 let g:syntastic_python_pylint_args = "--rcfile=.pylintrc"
 let g:syntastic_python_python_exec = '/usr/bin/python3'
 
-" Use typographic quotes in markdown and text files
-augroup textobj_quote
-  autocmd!
-  autocmd FileType markdown call textobj#quote#init()
-  autocmd FileType textile call textobj#quote#init()
-  autocmd FileType text call textobj#quote#init({'educate': 0})
-augroup END
-
 " WakaTime
 " Use Python 3 for running WakaTime
 let g:wakatime_PythonBinary = '/usr/bin/python3'
