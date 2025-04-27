@@ -13,3 +13,7 @@ launch fish
 new_tab oc
 cd ~/Projects/RH/github.com/openshift/oc/
 launch fish
+
+new_tab release
+cd ~/Projects/RH/github.com/openshift/release
+launch fish
