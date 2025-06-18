@@ -356,6 +356,7 @@ set -gx PATH $PATH $GOPATH/bin
 set -gx PATH $PATH {{ .chezmoi.homeDir }}/.local/bin
 fish_add_path {{ .chezmoi.homeDir }}/.cargo/bin
 fish_add_path {{ .chezmoi.homeDir }}/Applications/bin
+fish_add_path {{ .chezmoi.homeDir }}/.npm-global/bin
 set -gx EDITOR hx
 
 # The next line updates PATH for the Google Cloud SDK.
