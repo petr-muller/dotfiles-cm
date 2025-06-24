@@ -28,3 +28,27 @@ language-servers = ["fish-lsp"]
 [language-server.fish-lsp]
 command = "fish-lsp"
 args = ["start"]
+
+[[language]]
+name = "toml"
+language-servers = ["taplo"]
+
+[language-server.taplo]
+command = "taplo"
+args = ["lsp", "stdio"]
+
+[[language]]
+name = "yaml"
+file-types = ["yaml", "yml"]
+language-servers = ["yaml-language-server"]
+
+[language-server.yaml-language-server]
+command = "yaml-language-server"
+args = ["--stdio"]
+
+[language-server.yaml-language-server.config.yaml]
+format = { enable = true }
+validation = true
+
+[language-server.yaml-language-server.config.yaml.schemas]
+kubernetes = "/*.yaml"
