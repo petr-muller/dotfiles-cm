@@ -1,0 +1,30 @@
+[[language]]
+name = "go"
+roots = ["go.mod", "go.work", "Gopkg.toml"]
+comment-token = "//"
+language-servers = ["gopls", "golangci-lint-lsp"]
+formatter = { command = "gofumpt" }
+
+[language-server.gopls]
+command = "gopls"
+
+[language-server.gopls.config]
+analyses.unusedparams = true
+
+[language-server.golangci-lint-lsp]
+command = "golangci-lint-langserver"
+
+[[language]]
+name = "markdown"
+file-types = ["md", "markdown"]
+language-servers = ["marksman"]
+
+[[language]]
+name = "fish"
+file-types = ["fish"]
+roots = ["fishfile"]
+language-servers = ["fish-lsp"]
+
+[language-server.fish-lsp]
+command = "fish-lsp"
+args = ["start"]
