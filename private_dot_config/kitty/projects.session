@@ -17,3 +17,7 @@ launch fish
 new_tab release
 cd ~/Projects/RH/github.com/openshift/release
 launch fish
+
+new_tab vibes
+cd ~/Projects/RH/github.com/petr-muller/vibes
+launch fish
