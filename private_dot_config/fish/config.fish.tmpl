@@ -10,343 +10,508 @@ set -g green "#859900"
 set -g red "#DC322F"
 
 function header
-  gum style --foreground=$blue --bold --border rounded --align=center --padding "0 2" --border-foreground=$blue $argv[1]
+    gum style --foreground=$blue --bold --border rounded --align=center --padding "0 2" --border-foreground=$blue $argv[1]
 end
 
 function pass
-  set -f marker "$(gum style --foreground=$green --bold --border thick --border-foreground=$green PASS)"
-  set -f message "$(gum style --foreground=$green --bold --padding "0 2" $argv[1])"
-  gum join --horizontal --align=center "$marker" "$message"
+    set -f marker "$(gum style --foreground=$green --bold --border thick --border-foreground=$green PASS)"
+    set -f message "$(gum style --foreground=$green --bold --padding "0 2" $argv[1])"
+    gum join --horizontal --align=center "$marker" "$message"
 end
 
 function fail
-  set -f marker "$(gum style --foreground=$red --bold --border thick --border-foreground=$red FAIL)"
-  set -f message "$(gum style --foreground=$red --bold --padding "0 2" $argv[1])"
-  gum join --horizontal --align=center "$marker" "$message"
+    set -f marker "$(gum style --foreground=$red --bold --border thick --border-foreground=$red FAIL)"
+    set -f message "$(gum style --foreground=$red --bold --padding "0 2" $argv[1])"
+    gum join --horizontal --align=center "$marker" "$message"
 end
 
 function info
-  set -f marker "$(gum style --foreground=$blue --bold --border thick --border-foreground=$blue INFO)"
-  set -f message "$(gum style --foreground=$blue --bold --padding "0 2" $argv[1])"
-  gum join --horizontal --align=center "$marker" "$message"
+    set -f marker "$(gum style --foreground=$blue --bold --border thick --border-foreground=$blue INFO)"
+    set -f message "$(gum style --foreground=$blue --bold --padding "0 2" $argv[1])"
+    gum join --horizontal --align=center "$marker" "$message"
 end
 
 function ciart
-  string replace 'https://prow.ci.openshift.org/view/gs/' 'gs://' $argv[1]
+    string replace 'https://prow.ci.openshift.org/view/gs/' 'gs://' $argv[1]
 end
 
 function asjira
-  open https://issues.redhat.com/browse/(basename (pwd))
+    open https://issues.redhat.com/browse/(basename (pwd))
 end
 
 function aggregated-jobs
-  set -f job $argv[1]
-  set -f abase (ciart $job)
-  gsutil cat $abase'/artifacts/*/*/artifacts/release-analysis-aggregator/**/aggregation-config.yaml' | yq '.finishedjobs.[].humanurl'
+    set -f job $argv[1]
+    set -f abase (ciart $job)
+    gsutil cat $abase'/artifacts/*/*/artifacts/release-analysis-aggregator/**/aggregation-config.yaml' | yq '.finishedjobs.[].humanurl'
 end
 
 function workon
-  set -l item $argv[1]
-  set -f workdir $HOME/Projects/Workspaces/$item
-  mkdir -p $workdir
-  cd $workdir
-  if test -f $workdir/helpers.fish
-    gum style --foreground='#2E2' --bold "Sourcing helpers.fish"
-    source $workdir/helpers.fish
-  end
+    set -l item $argv[1]
+    set -f workdir $HOME/Projects/Workspaces/$item
+    mkdir -p $workdir
+    cd $workdir
+    if test -f $workdir/helpers.fish
+        gum style --foreground='#2E2' --bold "Sourcing helpers.fish"
+        source $workdir/helpers.fish
+    end
 
-  set -f notes $workdir/notes.md
+    set -f notes $workdir/notes.md
 
-  if ! test -f $notes
-    echo "# Useful Links" > $notes
-    echo "" >> $notes
-    echo "# TODOs" >> $notes
-    echo "" >> $notes
-    echo "- [ ] TODO" >> $notes
-    echo "" >> $notes
-    echo "# Journal" >> $notes
-    echo "" >> $notes
-    echo "## "(date '+%B %d, %Y') >> $notes
-  end
+    if ! test -f $notes
+        echo "# Useful Links" >$notes
+        echo "" >>$notes
+        echo "# TODOs" >>$notes
+        echo "" >>$notes
+        echo "- [ ] TODO" >>$notes
+        echo "" >>$notes
+        echo "# Journal" >>$notes
+        echo "" >>$notes
+        echo "## "(date '+%B %d, %Y') >>$notes
+    end
 
-  gum style --foreground='#2E2' --bold "Showing notes.md"
-  glow $notes --width 120
+    gum style --foreground='#2E2' --bold "Showing notes.md"
+    glow $notes --width 120
 
-  function fish_title --inherit-variable=item
-    echo $item
-  end
+    function fish_title --inherit-variable=item
+        echo $item
+    end
 end
 
 function cvo-cluster-bot
-  set -fx KUBECONFIG {{ .chezmoi.homeDir }}/Temporary/cluster-bot-kubeconfig
-  set -f cb_apisever (oc config view --minify -o jsonpath='{.clusters[*].cluster.server}')
-  if ! string match 'https://api.ci-ln-*' $cb_apisever
-    set -f ctx (oc config view --minify -o jsonpath='{.current-context}')
-    echo "This (context=$ctx) does not seem to be a Cluster Bot cluster"
-    return 1
-  end
+    set -fx KUBECONFIG {{ .chezmoi.homeDir }}/Temporary/cluster-bot-kubeconfig
+    set -f cb_apisever (oc config view --minify -o jsonpath='{.clusters[*].cluster.server}')
+    if ! string match 'https://api.ci-ln-*' $cb_apisever
+        set -f ctx (oc config view --minify -o jsonpath='{.current-context}')
+        echo "This (context=$ctx) does not seem to be a Cluster Bot cluster"
+        return 1
+    end
 
-  set -fx NODE_NAME foobar
-  set -fx PAYLOAD_OVERRIDE {{ .chezmoi.homeDir }}/Temporary/cluster-bot-payload
-  set -f cb_version (cat $PAYLOAD_OVERRIDE/release-manifests/release-metadata | jq -r .version)
+    set -fx NODE_NAME foobar
+    set -fx PAYLOAD_OVERRIDE {{ .chezmoi.homeDir }}/Temporary/cluster-bot-payload
+    set -f cb_version (cat $PAYLOAD_OVERRIDE/release-manifests/release-metadata | jq -r .version)
 
-  oc delete lease version -n openshift-cluster-version
+    oc delete lease version -n openshift-cluster-version
 
-  go build ./...
-  go run ./cmd -v2 start --release-image=$cb_version --listen="" > cvo-(date -Iseconds).log 2>&1 &
-  set -f cvo_pid $last_pid
+    go build ./...
+    go run ./cmd -v2 start --release-image=$cb_version --listen="" >cvo-(date -Iseconds).log 2>&1 &
+    set -f cvo_pid $last_pid
 
-  echo Waiting for 300 seconds
-  sleep 300
-  kill --signal INT $cvo_pid
+    echo Waiting for 300 seconds
+    sleep 300
+    kill --signal INT $cvo_pid
 end
 
 function prepare-local-cvo
-  header "Preparing $KUBECONFIG and $CLUSTER_BOT_KUBECONFIG"
-  set -f kubeconfig $argv[1]
-  mv $kubeconfig /tmp/
-  rm -f $CLUSTER_BOT_KUBECONFIG
-  ln -s /tmp/(basename $kubeconfig) $CLUSTER_BOT_KUBECONFIG
-  set -gx KUBECONFIG $CLUSTER_BOT_KUBECONFIG
-  header 'Testing $KUBECONFIG via `oc whoami`'
-  oc whoami
-  header "Obtaining and extracting release payload image to $CLUSTER_BOT_EXTRACTED_PAYLOAD"
-  set -f rpimage (oc get -n openshift-cluster-version clusterversion version -o jsonpath='{.status.desired.image}')
-  echo "Release payload image:   $rpimage"
-  echo "Release payload version:" (oc get -n openshift-cluster-version clusterversion version -o jsonpath='{.status.desired.version}')
-  rm -f $CLUSTER_BOT_EXTRACTED_PAYLOAD
-  set -f rpimage_extracted (mktemp -d)
-  oc image extract $rpimage --path /:$rpimage_extracted/
-  ln -s $rpimage_extracted $CLUSTER_BOT_EXTRACTED_PAYLOAD
-  header 'Scaling down cluster CVO (or not)'
-  if gum confirm "Scale down cluster CVO?"
-    oc scale --replicas=0 -n openshift-cluster-version deployment cluster-version-operator
-  end
-  oc get deployments -n openshift-cluster-version
+    header "Preparing $KUBECONFIG and $CLUSTER_BOT_KUBECONFIG"
+    set -f kubeconfig $argv[1]
+    mv $kubeconfig /tmp/
+    rm -f $CLUSTER_BOT_KUBECONFIG
+    ln -s /tmp/(basename $kubeconfig) $CLUSTER_BOT_KUBECONFIG
+    set -gx KUBECONFIG $CLUSTER_BOT_KUBECONFIG
+    header 'Testing $KUBECONFIG via `oc whoami`'
+    oc whoami
+    header "Obtaining and extracting release payload image to $CLUSTER_BOT_EXTRACTED_PAYLOAD"
+    set -f rpimage (oc get -n openshift-cluster-version clusterversion version -o jsonpath='{.status.desired.image}')
+    echo "Release payload image:   $rpimage"
+    echo "Release payload version:" (oc get -n openshift-cluster-version clusterversion version -o jsonpath='{.status.desired.version}')
+    rm -f $CLUSTER_BOT_EXTRACTED_PAYLOAD
+    set -f rpimage_extracted (mktemp -d)
+    oc image extract $rpimage --path /:$rpimage_extracted/
+    ln -s $rpimage_extracted $CLUSTER_BOT_EXTRACTED_PAYLOAD
+    header 'Scaling down cluster CVO (or not)'
+    if gum confirm "Scale down cluster CVO?"
+        oc scale --replicas=0 -n openshift-cluster-version deployment cluster-version-operator
+    end
+    oc get deployments -n openshift-cluster-version
 end
 
 function replace-cvo-on-clusterbot
-  set -f cb_apisever (oc config view --minify -o jsonpath='{.clusters[*].cluster.server}')
-  if ! string match 'https://api.ci-ln-*' $cb_apisever
-    set -f ctx (oc config view --minify -o jsonpath='{.current-context}')
-    echo "This (context=$ctx) does not seem to be a Cluster Bot cluster"
-    return 1
-  end
-  set -x REPO quay.io/petr-muller
+    set -f cb_apisever (oc config view --minify -o jsonpath='{.clusters[*].cluster.server}')
+    if ! string match 'https://api.ci-ln-*' $cb_apisever
+        set -f ctx (oc config view --minify -o jsonpath='{.current-context}')
+        echo "This (context=$ctx) does not seem to be a Cluster Bot cluster"
+        return 1
+    end
+    set -x REPO quay.io/petr-muller
 
-  header "Build and push development CVO image"
+    header "Build and push development CVO image"
 
-  if ./hack/build-image.sh
-    pass "Build CVO image"
-  else
-    fail "Build CVO image"
-    return
-  end
+    if ./hack/build-image.sh
+        pass "Build CVO image"
+    else
+        fail "Build CVO image"
+        return
+    end
 
-  if ./hack/push-image.sh
-    pass "Push CVO image"
-  else
-    fail "Push CVO image"
-    return
-  end
+    if ./hack/push-image.sh
+        pass "Push CVO image"
+    else
+        fail "Push CVO image"
+        return
+    end
 
-  header "Build and publish development release payload image"
-  set -fx cb_payload ( oc get clusterversion version -o jsonpath={.status.desired.image} )
-  info "Cluster payload image: $cb_payload"
-  set -fx payload_id (openssl rand -hex 6)
-  set -fx payload_image $REPO/ocp-release:$payload_id
+    header "Build and publish development release payload image"
+    set -fx cb_payload ( oc get clusterversion version -o jsonpath={.status.desired.image} )
+    info "Cluster payload image: $cb_payload"
+    set -fx payload_id (openssl rand -hex 6)
+    set -fx payload_image $REPO/ocp-release:$payload_id
 
-  if oc adm release new --from-release=$cb_payload --to-image-base=$REPO/origin-cluster-version-operator:latest --to-image=$payload_image
-    pass "Build and publish payload image"
-  else
-    fail "Build and publish payload image"
-    return
-  end
+    if oc adm release new --from-release=$cb_payload --to-image-base=$REPO/origin-cluster-version-operator:latest --to-image=$payload_image
+        pass "Build and publish payload image"
+    else
+        fail "Build and publish payload image"
+        return
+    end
 
-  header "Replace CVO with development release payload image"
-  set -fx imagePatch '{"op":"replace","path":"/spec/template/spec/containers/0/image","value":"'"$payload_image"'"}'
-  set -fx releaseImageArgPatch '{"op":"replace","path":"/spec/template/spec/containers/0/args/1","value":"--release-image='"$payload_image"'"}'
-  if oc patch -n openshift-cluster-version deployment cluster-version-operator --type json --patch="[$imagePatch,$releaseImageArgPatch]"
-    pass "Replace CVO"
-  else
-    fail "Replace CVO"
-    return
-  end
+    header "Replace CVO with development release payload image"
+    set -fx imagePatch '{"op":"replace","path":"/spec/template/spec/containers/0/image","value":"'"$payload_image"'"}'
+    set -fx releaseImageArgPatch '{"op":"replace","path":"/spec/template/spec/containers/0/args/1","value":"--release-image='"$payload_image"'"}'
+    if oc patch -n openshift-cluster-version deployment cluster-version-operator --type json --patch="[$imagePatch,$releaseImageArgPatch]"
+        pass "Replace CVO"
+    else
+        fail "Replace CVO"
+        return
+    end
 end
 
 function mock-cincinnati-on-clusterbot
-  set -f GRAPHDATA_GIST 900d7aca629e5627abab695941b00a36
-  if [ "$argv[1]" = "" ]
-    set -f GISTFILE cincinnati-graph-data-template.json
-  else
-    set -f GISTFILE $argv[1]
-  end
-  echo "Using gist file: $GISTFILE"
+    set -f GRAPHDATA_GIST 900d7aca629e5627abab695941b00a36
+    if [ "$argv[1]" = "" ]
+        set -f GISTFILE cincinnati-graph-data-template.json
+    else
+        set -f GISTFILE $argv[1]
+    end
+    echo "Using gist file: $GISTFILE"
 
-  if ! gh gist view $GRAPHDATA_GIST --filename $GISTFILE &> /dev/null
-    echo "FAIL: gh gist view $GRAPHDATA_GIST --filename $GISTFILE"
-    return
-  end
+    if ! gh gist view $GRAPHDATA_GIST --filename $GISTFILE &>/dev/null
+        echo "FAIL: gh gist view $GRAPHDATA_GIST --filename $GISTFILE"
+        return
+    end
 
-  set -f cb_apisever (oc config view --minify -o jsonpath='{.clusters[*].cluster.server}')
-  if ! string match 'https://api.ci-ln-*' $cb_apisever
-    set -f ctx (oc config view --minify -o jsonpath='{.current-context}')
-    echo "This (context=$ctx) does not seem to be a Cluster Bot cluster"
-    return 1
-  end
+    set -f cb_apisever (oc config view --minify -o jsonpath='{.clusters[*].cluster.server}')
+    if ! string match 'https://api.ci-ln-*' $cb_apisever
+        set -f ctx (oc config view --minify -o jsonpath='{.current-context}')
+        echo "This (context=$ctx) does not seem to be a Cluster Bot cluster"
+        return 1
+    end
 
-  set -f cb_cluster_version (oc get clusterversion version -o jsonpath={.status.desired.version})
-  set -f cb_cluster_image (oc get clusterversion version -o jsonpath={.status.desired.image})
-  gh gist view $GRAPHDATA_GIST --raw --filename $GISTFILE | sed -e "s|CLUSTER-BOT-VERSION|$cb_cluster_version|g" -e "s|CLUSTER-BOT-PAYLOAD|$cb_cluster_image|g" > /tmp/cluster-bot-$cb_cluster_version.json
-  gh gist edit $GRAPHDATA_GIST --add /tmp/cluster-bot-$cb_cluster_version.json
+    set -f cb_cluster_version (oc get clusterversion version -o jsonpath={.status.desired.version})
+    set -f cb_cluster_image (oc get clusterversion version -o jsonpath={.status.desired.image})
+    gh gist view $GRAPHDATA_GIST --raw --filename $GISTFILE | sed -e "s|CLUSTER-BOT-VERSION|$cb_cluster_version|g" -e "s|CLUSTER-BOT-PAYLOAD|$cb_cluster_image|g" >/tmp/cluster-bot-$cb_cluster_version.json
+    gh gist edit $GRAPHDATA_GIST --add /tmp/cluster-bot-$cb_cluster_version.json
 
-  set -x fake_cincinnati "https://gist.githubusercontent.com/petr-muller/$GRAPHDATA_GIST/raw/cluster-bot-$cb_cluster_version.json?cachebust="(random)
+    set -x fake_cincinnati "https://gist.githubusercontent.com/petr-muller/$GRAPHDATA_GIST/raw/cluster-bot-$cb_cluster_version.json?cachebust="(random)
 
-  oc patch clusterversion version --patch '{"spec":{"upstream":"'"$fake_cincinnati"'"}}' --type=merge
-  sleep 5
-  oc adm upgrade channel test --allow-explicit-channel
-  sleep 5
+    oc patch clusterversion version --patch '{"spec":{"upstream":"'"$fake_cincinnati"'"}}' --type=merge
+    sleep 5
+    oc adm upgrade channel test --allow-explicit-channel
+    sleep 5
 end
 
 function cluster-bot-helpers
-  set -gx CLUSTER_BOT_APISERVER (oc config view --minify -o jsonpath='{.clusters[*].cluster.server}')
-  if ! string match 'https://api.ci-ln-*' $CLUSTER_BOT_APISERVER
-    set -f ctx (oc config view --minify -o jsonpath='{.current-context}')
-    echo "This (context=$ctx) does not seem to be a Cluster Bot cluster"
-    return 1
-  end
+    set -gx CLUSTER_BOT_APISERVER (oc config view --minify -o jsonpath='{.clusters[*].cluster.server}')
+    if ! string match 'https://api.ci-ln-*' $CLUSTER_BOT_APISERVER
+        set -f ctx (oc config view --minify -o jsonpath='{.current-context}')
+        echo "This (context=$ctx) does not seem to be a Cluster Bot cluster"
+        return 1
+    end
 
-  echo "Input token"
-  read -gx CLUSTER_BOT_TOKEN
-  set -gx CLUSTER_BOT_PROMETHEUS https://(oc get route -n openshift-monitoring prometheus-k8s -o jsonpath={.spec.host})
-  set -gx CLUSTER_BOT_ALERTMANAGER https://(oc get route -n openshift-monitoring alertmanager-main -o jsonpath={.spec.host})
+    echo "Input token"
+    read -gx CLUSTER_BOT_TOKEN
+    set -gx CLUSTER_BOT_PROMETHEUS https://(oc get route -n openshift-monitoring prometheus-k8s -o jsonpath={.spec.host})
+    set -gx CLUSTER_BOT_ALERTMANAGER https://(oc get route -n openshift-monitoring alertmanager-main -o jsonpath={.spec.host})
 end
 
 function cluster-bot-override-ca
-  cat ~/Temporary/cluster-bot-kubeconfig | yq .clusters[0].cluster.certificate-authority-data | base64 -d > ~/Temporary/cluster-bot-certs.crt
-  set -gx SSL_CERT_FILE ~/Temporary/cluster-bot-certs.crt
+    cat ~/Temporary/cluster-bot-kubeconfig | yq .clusters[0].cluster.certificate-authority-data | base64 -d >~/Temporary/cluster-bot-certs.crt
+    set -gx SSL_CERT_FILE ~/Temporary/cluster-bot-certs.crt
 end
 
 function cluster-bot-trace-update
-  while true
-    if test -e DONE
-      return
+    while true
+        if test -e DONE
+            return
+        end
+        set -f NOW (date -Iseconds)
+        echo "Got trace on $NOW"
+        mkdir $NOW
+        oc get clusterversion version -o yaml >$NOW/b01-cv.yaml
+        oc get clusteroperators -o yaml >$NOW/b01-co.yaml
+        oc get machineconfigs -o yaml >$NOW/b01-mc.yaml
+        oc get machineconfigpools -o yaml >$NOW/b01-mcp.yaml
+        oc get nodes -o yaml >$NOW/b01-node.yaml
+        sleep 10
     end
-    set -f NOW (date -Iseconds)
-    echo "Got trace on $NOW"
-    mkdir $NOW
-    oc get clusterversion version -o yaml > $NOW/b01-cv.yaml
-    oc get clusteroperators -o yaml > $NOW/b01-co.yaml
-    oc get machineconfigs -o yaml > $NOW/b01-mc.yaml
-    oc get machineconfigpools -o yaml > $NOW/b01-mcp.yaml
-    oc get nodes -o yaml > $NOW/b01-node.yaml
-    sleep 10
-  end
 end
-
 
 set -g fish_greeting
 
 function hive
-  oc --context hive $argv
+    oc --context hive $argv
 end
 
 function apici
-  oc --context api.ci $argv
+    oc --context api.ci $argv
 end
 
 function appci
-  oc --context app.ci $argv
+    oc --context app.ci $argv
 end
 
 function b01
-  oc --context build01 $argv
+    oc --context build01 $argv
 end
 
 function b02
-  oc --context build02 $argv
+    oc --context build02 $argv
 end
 
 function b03
-  oc --context build03 $argv
+    oc --context build03 $argv
 end
 
 function b04
-  oc --context build04 $argv
+    oc --context build04 $argv
 end
 
 function b05
-  oc --context build05 $argv
+    oc --context build05 $argv
 end
 
 function ota-stage
-  oc --context ota-stage $argv
+    oc --context ota-stage $argv
 end
 
 function ocmg
-  oc --context must-gather $argv
+    oc --context must-gather $argv
 end
 
 function cluster-bot
-  oc --kubeconfig {{ .chezmoi.homeDir }}/Temporary/cluster-bot-kubeconfig $argv
+    oc --kubeconfig {{ .chezmoi.homeDir }}/Temporary/cluster-bot-kubeconfig $argv
 end
 
-function oc-login-token
-  echo "== Known contexts:"
-  oc config get-contexts; or return
-  read -P "== Context: " context; or return
-  oc config get-contexts $context >/dev/null; or return
-  set cluster (oc config view -o yaml | yq '.contexts[] | select(.name=="'$context'").context.cluster'); or return
-  set apiurl (oc config view -o yaml | yq '.clusters[] | select(.name=="'$cluster'").cluster.server'); or return
-  set oauth (string replace 'https://api.' 'https://oauth-openshift.apps.' $apiurl); or return
-  set oauth (string replace -r ':\d+' '/oauth/token/request' $oauth); or return
-  open $oauth; or return
-  set user (oc config view -o yaml | yq '.contexts[] | select(.name=="'$context'").context.user'); or return
-  read -P "== New token for $user: " token; or return
-  oc config set-credentials $user --token=$token
+function oc-login-token --description "Enhanced OpenShift login with token using gum and Kerberos"
+    # Default values
+    set -l default_krb_user pmuller
+    set -l default_providers RedHat_Internal_SSO redhat-sso
+
+    # Parse command line arguments
+    argparse 'u/user=' 'p/provider=+' h/help -- $argv
+    or return 1
+
+    # Declare variables at function level first
+    set -l krb_user
+    set -l providers
+
+    # Set defaults after parsing, with command line overrides
+    if set -q _flag_user
+        set krb_user $_flag_user
+    else
+        set krb_user $default_krb_user
+    end
+
+    # Start with default providers
+    set providers $default_providers
+
+    # Add any additional providers from command line
+    if set -q _flag_provider
+        set providers $providers $_flag_provider
+    end
+
+    if set -q _flag_help
+        echo "Usage: oc-login-token [OPTIONS]"
+        echo ""
+        echo "Options:"
+        echo "  -u, --user USER      Kerberos username (default: pmuller)"
+        echo "  -p, --provider PROVIDER  Add SSO provider name (can be used multiple times)"
+        echo "                       Default providers: RedHat_Internal_SSO, redhat-sso"
+        echo "  -h, --help           Show this help message"
+        echo ""
+        echo "Examples:"
+        echo "  oc-login-token                    # Use default providers"
+        echo "  oc-login-token --provider custom # Add 'custom' to default providers"
+        echo "  oc-login-token -p sso1 -p sso2   # Add multiple additional providers"
+        return 0
+    end
+
+    # Check if required tools are available
+    if not command -q gum
+        echo "Error: gum is required but not installed"
+        return 1
+    end
+
+    if not command -q oc
+        echo "Error: oc is required but not installed"
+        return 1
+    end
+
+    if not command -q ocp-sso-token
+        echo "Error: ocp-sso-token is required but not installed"
+        return 1
+    end
+
+    # Header
+    gum style --foreground=$blue --bold --border rounded --align=center --padding "0 2" --border-foreground=$blue "OpenShift Login Token"
+
+    # Check Kerberos ticket
+    echo ""
+    gum style --foreground=$blue --bold "Checking Kerberos authentication..."
+
+    if not klist -s 2>/dev/null
+        gum style --foreground=$red "No valid Kerberos ticket found"
+        if gum confirm "Run kinit for user $krb_user?"
+            kinit $krb_user
+            or begin
+                gum style --foreground=$red --bold "Failed to obtain Kerberos ticket"
+                return 1
+            end
+        else
+            gum style --foreground=$red --bold "Kerberos authentication required"
+            return 1
+        end
+    else
+        gum style --foreground=$green "✓ Valid Kerberos ticket found"
+    end
+
+    # Get available contexts
+    echo ""
+    gum style --foreground=$blue --bold "Getting available contexts..."
+
+    set -l contexts (oc config get-contexts -o name)
+    if test $status -ne 0
+        gum style --foreground=$red --bold "Failed to get contexts"
+        return 1
+    end
+
+    gum style --foreground=$green "✓ Found "(count $contexts)" contexts"
+
+    if test (count $contexts) -eq 0
+        gum style --foreground=$red --bold "No contexts found in kubeconfig"
+        return 1
+    end
+
+    # Let user select context
+    echo ""
+    set -l selected_context (printf '%s\n' $contexts | gum choose --header "Select OpenShift context:")
+
+    if test -z "$selected_context"
+        gum style --foreground=$red --bold "No context selected"
+        return 1
+    end
+
+    gum style --foreground=$blue "Selected context: $selected_context"
+
+    # Get cluster information
+    set -l cluster (oc config view -o yaml | yq '.contexts[] | select(.name=="'$selected_context'").context.cluster' 2>/dev/null)
+    if test -z "$cluster"
+        gum style --foreground=$red --bold "Failed to get cluster for context $selected_context"
+        return 1
+    end
+
+    set -l api_url (oc config view -o yaml | yq '.clusters[] | select(.name=="'$cluster'").cluster.server' 2>/dev/null)
+    if test -z "$api_url"
+        gum style --foreground=$red --bold "Failed to get API URL for cluster $cluster"
+        return 1
+    end
+
+    set -l user (oc config view -o yaml | yq '.contexts[] | select(.name=="'$selected_context'").context.user' 2>/dev/null)
+    if test -z "$user"
+        gum style --foreground=$red --bold "Failed to get user for context $selected_context"
+        return 1
+    end
+
+    # Show cluster information
+    echo ""
+    gum style --foreground=$blue --bold "Cluster Information:"
+    echo "  Context: $selected_context"
+    echo "  Cluster: $cluster"
+    echo "  API URL: $api_url"
+    echo "  User: $user"
+
+    # Get token using ocp-sso-token
+    echo ""
+    gum style --foreground=$blue --bold "Obtaining OAuth token..."
+
+    # Convert providers list to comma-separated string
+    set -l providers_str (string join "," $providers)
+    gum style --foreground=$blue "Trying providers: $providers_str"
+
+    echo "Running command: ocp-sso-token --identity-providers $providers_str $api_url"
+
+    set -l token (ocp-sso-token --identity-providers $providers_str $api_url)
+    set -l ocp_status $status
+
+    if test $ocp_status -ne 0 -o -z "$token"
+        gum style --foreground=$red --bold "Failed to obtain token from ocp-sso-token (exit code: $ocp_status)"
+        return 1
+    end
+
+    # Update kubeconfig with new token
+    if oc config set-credentials $user --token=$token 2>/dev/null
+        gum style --foreground=$green --bold "✓ Token updated successfully for user $user"
+    else
+        gum style --foreground=$red --bold "Failed to update token in kubeconfig"
+        return 1
+    end
+
+    # Test the token
+    echo ""
+    gum style --foreground=$blue --bold "Testing authentication..."
+
+    if oc --context=$selected_context whoami >/dev/null 2>&1
+        set -l whoami_result (oc --context=$selected_context whoami 2>/dev/null)
+        gum style --foreground=$green --bold "✓ Authentication successful"
+        gum style --foreground=$green "Logged in as: $whoami_result"
+    else
+        gum style --foreground=$red --bold "Authentication test failed"
+        return 1
+    end
+
+    echo ""
+    gum style --foreground=$green --bold --border rounded --align=center --padding "0 2" --border-foreground=$green "Login completed successfully!"
 end
 
 function gp
-  git push
+    git push
 end
 
 function gpf
-  git push --force
+    git push --force
 end
 
 function c
-  git commit
+    git commit
 end
 
 function ca
-  git commit --amend
+    git commit --amend
 end
 
 function k
-  git kick
+    git kick
 end
 
 function ginu
-  git in upstream
+    git in upstream
 end
 
 function pjw
-  set PJ $argv[1]
-  if [ -z $PJ ]
-    echo "Needs a Prowjob ID"
-    return
-  end
-  while [ -z $POD ]
-     echo "Waiting for pod to be assigned for Prowjob"
-     set POD (oc get pj $PJ -o jsonpath='{.status.pod_name}')
-     sleep 5
-  end
-  echo "Pod: $POD"
-  while ! oc logs $POD -c test -f
-     echo "Waiting for pod to run"
-     echo "Status: "(oc get pod $POD -o jsonpath={.status.phase})
-     sleep 5
-  end
+    set PJ $argv[1]
+    if [ -z $PJ ]
+        echo "Needs a Prowjob ID"
+        return
+    end
+    while [ -z $POD ]
+        echo "Waiting for pod to be assigned for Prowjob"
+        set POD (oc get pj $PJ -o jsonpath='{.status.pod_name}')
+        sleep 5
+    end
+    echo "Pod: $POD"
+    while ! oc logs $POD -c test -f
+        echo "Waiting for pod to run"
+        echo "Status: "(oc get pod $POD -o jsonpath={.status.phase})
+        sleep 5
+    end
 end
 
 source /usr/share/autojump/autojump.fish

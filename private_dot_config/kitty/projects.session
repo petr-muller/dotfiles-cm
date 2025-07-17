@@ -21,3 +21,7 @@ launch fish
 new_tab vibes
 cd ~/Projects/RH/github.com/petr-muller/vibes
 launch fish
+
+new_tab graph
+cd ~/Projects/RH/github.com/openshift/cincinnati-graph-data
+launch graph
