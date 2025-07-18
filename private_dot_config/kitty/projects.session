@@ -24,4 +24,4 @@ launch fish
 
 new_tab graph
 cd ~/Projects/RH/github.com/openshift/cincinnati-graph-data
-launch graph
+launch fish
