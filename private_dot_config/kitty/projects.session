@@ -25,3 +25,11 @@ launch fish
 new_tab graph
 cd ~/Projects/RH/github.com/openshift/cincinnati-graph-data
 launch fish
+
+new_tab ota
+cd ~/Projects/RH/github.com/petr-muller/ota
+launch fish
+
+new_tab origin
+cd ~/Projects/RH/github.com/openshift/origin
+launch fish
