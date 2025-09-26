@@ -9,10 +9,10 @@
   st = status
   authors = shortlog -s -n -e
   tree = log --oneline --decorate --graph
-  publish = "!f() { git push --set-upstream origin $(git symbolic-ref --short HEAD);}; f"
-  github-sync = !git checkout master && git fetch --all && git merge upstream/master && git push
-  kick = "!f(){ git fetch upstream && ( git checkout upstream/master || git checkout upstream/main ) && git checkout -b $1; }; f"
-  in = "!f(){ git fetch $1; git co $1/master; }; f"
+  publish = "!f() { {{ .chezmoi.config.git.command }} push --set-upstream origin $({{ .chezmoi.config.git.command }} symbolic-ref --short HEAD);}; f"
+  github-sync = !{{ .chezmoi.config.git.command }} checkout master && {{ .chezmoi.config.git.command }} fetch --all && {{ .chezmoi.config.git.command }} merge upstream/master && {{ .chezmoi.config.git.command }} push
+  kick = "!f(){ {{ .chezmoi.config.git.command }} fetch upstream && ( {{ .chezmoi.config.git.command }} checkout upstream/master &> /dev/null || {{ .chezmoi.config.git.command }} checkout upstream/main ) && {{ .chezmoi.config.git.command }} checkout -b $1; }; f"
+  in = "!f(){ {{ .chezmoi.config.git.command }} fetch $1; {{ .chezmoi.config.git.command }} co $1/master &> /dev/null || {{ .chezmoi.config.git.command }} co $1/main; }; f"
 [color]
   branch = true
   diff = true
