@@ -33,3 +33,7 @@ launch fish
 new_tab origin
 cd ~/Projects/RH/github.com/openshift/origin
 launch fish
+
+new_tab sippy
+cd ~/Projects/RH/github.com/openshift/sippy
+launch fish

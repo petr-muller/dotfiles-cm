@@ -18,6 +18,7 @@ command = "golangci-lint-langserver"
 name = "markdown"
 file-types = ["md", "markdown"]
 language-servers = ["marksman"]
+soft-wrap.enable = true
 
 [[language]]
 name = "fish"
