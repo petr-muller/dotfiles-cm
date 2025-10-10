@@ -13,6 +13,8 @@
   github-sync = !{{ .chezmoi.config.git.command }} checkout master && {{ .chezmoi.config.git.command }} fetch --all && {{ .chezmoi.config.git.command }} merge upstream/master && {{ .chezmoi.config.git.command }} push
   kick = "!f(){ {{ .chezmoi.config.git.command }} fetch upstream && ( {{ .chezmoi.config.git.command }} checkout upstream/master &> /dev/null || {{ .chezmoi.config.git.command }} checkout upstream/main ) && {{ .chezmoi.config.git.command }} checkout -b $1; }; f"
   in = "!f(){ {{ .chezmoi.config.git.command }} fetch $1; {{ .chezmoi.config.git.command }} co $1/master &> /dev/null || {{ .chezmoi.config.git.command }} co $1/main; }; f"
+  cass   = "!f() { {{ .chezmoi.config.git.command }} commit -a -e -m \"🤖 $@\n\n🤖 Assisted by...\"; }; f"
+  assist = "!f() { msg=$({{ .chezmoi.config.git.command }} log -1 --pretty='format:🤖 %s%n%n%b'); {{ .chezmoi.config.git.command }} commit --amend -e -m \"$msg\n\n🤖 Assisted by...\"; }; f"
 [color]
   branch = true
   diff = true
