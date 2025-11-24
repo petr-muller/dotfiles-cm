@@ -96,3 +96,9 @@
 [rerere]
   enabled = true
   autoupdate = true
+[credential "https{{ .chezmoi.pathListSeparator }}{{ .chezmoi.pathSeparator }}{{ .chezmoi.pathSeparator }}github.com"]
+	helper = 
+	helper = !{{ .chezmoi.pathSeparator }}usr{{ .chezmoi.pathSeparator }}bin{{ .chezmoi.pathSeparator }}gh auth {{ .chezmoi.config.git.command }}-credential
+[credential "https{{ .chezmoi.pathListSeparator }}{{ .chezmoi.pathSeparator }}{{ .chezmoi.pathSeparator }}gist.github.com"]
+	helper = 
+	helper = !{{ .chezmoi.pathSeparator }}usr{{ .chezmoi.pathSeparator }}bin{{ .chezmoi.pathSeparator }}gh auth {{ .chezmoi.config.git.command }}-credential
