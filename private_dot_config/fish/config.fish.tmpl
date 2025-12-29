@@ -266,6 +266,10 @@ function apici
     oc --context api.ci $argv
 end
 
+function dpcr
+    oc --context dpcr $argv
+end
+
 function appci
     oc --context app.ci $argv
 end
@@ -288,6 +292,10 @@ end
 
 function b05
     oc --context build05 $argv
+end
+
+function b09
+    oc --context build09 $argv
 end
 
 function ota-stage
