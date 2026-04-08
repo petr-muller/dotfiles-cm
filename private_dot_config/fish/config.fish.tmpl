@@ -544,6 +544,8 @@ fish_add_path {{ .chezmoi.homeDir }}/Applications/bin
 fish_add_path {{ .chezmoi.homeDir }}/.npm-global/bin
 set -gx EDITOR hx
 
+set -gx JIRA_USERNAME pmuller@redhat.com
+
 # The next line updates PATH for the Google Cloud SDK.
 if [ -f "{{ .chezmoi.homeDir }}/Applications/google-cloud-sdk/path.fish.inc" ]
     source "{{ .chezmoi.homeDir }}/Applications/google-cloud-sdk/path.fish.inc"
