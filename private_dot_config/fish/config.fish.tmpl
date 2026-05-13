@@ -14,11 +14,11 @@ set -g green "#859900"
 set -g red "#DC322F"
 
 function claude_redhat
-    CLAUDE_CODE_USE_VERTEX=1 CLOUD_ML_REGION=global ANTHROPIC_VERTEX_PROJECT_ID=itpc-gcp-hcm-pe-eng-claude claude
+    CLAUDE_CODE_USE_VERTEX=1 CLOUD_ML_REGION=global ANTHROPIC_VERTEX_PROJECT_ID=itpc-gcp-hcm-pe-eng-claude claude $argv
 end
 
 function claude_mine
-    CLAUDE_CODE_USE_VERTEX= CLOUD_ML_REGION= ANTHROPIC_VERTEX_PROJECT_ID= claude
+    CLAUDE_CODE_USE_VERTEX= CLOUD_ML_REGION= ANTHROPIC_VERTEX_PROJECT_ID= claude $argv
 end
 
 function header
