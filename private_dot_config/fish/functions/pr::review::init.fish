@@ -85,7 +85,9 @@ function pr::review::init --description "Set up a worktree to review a GitHub PR
     set -l sha (git -C $repo_root rev-parse FETCH_HEAD)
 
     echo "Creating worktree..."
-    git -C $repo_root worktree add -b $branch $worktree_path $sha
+    # -B: reset the branch if it already exists (stale leftover from a removed worktree)
+    git -C $repo_root worktree prune 2>/dev/null
+    git -C $repo_root worktree add -B $branch $worktree_path $sha
     or return 1
 
     cd $worktree_path

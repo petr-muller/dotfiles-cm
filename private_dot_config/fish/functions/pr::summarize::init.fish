@@ -85,7 +85,8 @@ function pr::summarize::init --description "Set up a worktree to summarize a Git
     set -l sha (git -C $repo_root rev-parse FETCH_HEAD)
 
     echo "Creating worktree..."
-    git -C $repo_root worktree add -b $branch $worktree_path $sha
+    git -C $repo_root worktree prune 2>/dev/null
+    git -C $repo_root worktree add -B $branch $worktree_path $sha
     or return 1
 
     pr::_private_content $worktree_path (basename $repo_root)

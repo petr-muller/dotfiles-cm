@@ -91,7 +91,8 @@ function issue::triage::init --description "Set up a worktree to triage a GitHub
     echo "Source:   $source_remote/$default_branch @ $target_sha"
 
     echo "Creating worktree..."
-    git -C $repo_root worktree add -b $branch $worktree_path $target_sha
+    git -C $repo_root worktree prune 2>/dev/null
+    git -C $repo_root worktree add -B $branch $worktree_path $target_sha
     or return 1
 
     cd $worktree_path

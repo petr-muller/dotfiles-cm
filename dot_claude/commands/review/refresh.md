@@ -63,7 +63,31 @@ End with the literal string `RECOMMENDATION: full re-review` on its own line so 
 
 ## Output rules
 
-- Be specific about what changed. Names, paths, SHAs, line counts.
-- Don't repeat the existing findings — refer to them by title.
+The user sees every tool call (Bash, Edit, Read). Mechanical output (timestamps, diffs, file edits) drowns out the information the user actually cares about. Structure your work so the human-readable summary comes **last**, after all tool calls are done.
+
+### Phase 1: Gather and update (silent)
+
+Do all data gathering, timestamp generation, file reads, and artifact edits **first**. Don't print narrative text between tool calls — no "Now updating the HTML" or "Updating timestamps". Just make the calls.
+
+Also fetch the current timestamp (`date -u -Iseconds | sed 's/+00:00/Z/'`) during the gather phase, not as a separate step before edits.
+
+### Phase 2: Summary (last thing the user sees)
+
+After all tool calls are complete, print a single summary block. This is the **only** narrative output of the entire command. It must be self-contained.
+
+**When updating in place**, include:
+- Whether code changed (`OLD_SHA` → `NEW_SHA`, or "no code changes").
+- PR state change if any (merged, closed).
+- Activity bullets: who did what, when (reviews, comments, approvals, label changes, holds).
+- The two absolute file paths that were updated.
+
+**When recommending re-review**, include the summary described in "When recommending re-review" above.
+
+**When there's no activity**, just say so and stop. No files to list.
+
+### General
+
+- Be specific: names, paths, SHAs, line counts.
+- Don't repeat existing findings — refer to them by title.
 - No emoji, no filler.
-- When updating, print only the two absolute paths and a one-line summary. When recommending re-review, print the summary described above.
+- Minimize tool calls: batch parallel fetches, do one edit per file when possible.
