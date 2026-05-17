@@ -18,6 +18,16 @@ For repos I don't solely own:
 
 I rarely commit directly in the main working copies — actual work happens in worktrees under `~/Projects/Worktrees/`.
 
+### Stay inside the worktree (IMPORTANT)
+
+When invoked in a worktree under `~/Projects/Worktrees/github.com/<org>/<repo>/<worktree>/`, that worktree directory is the **only** place to read or write repo files. The worktree is a complete, self-contained checkout — every tracked file is present there at the correct revision for this task.
+
+Do **not**, under any circumstances:
+- Read, search, or write files in the canonical working copy (`~/Projects/RH/...` or `~/Projects/Personal/...`) — its contents belong to a different branch and will mislead you.
+- `cd` to, glob, or otherwise reach above the worktree root, e.g. the sibling-worktree parent `~/Projects/Worktrees/github.com/<org>/<repo>/` or other `<worktree>` siblings.
+
+If a file seems missing, it is genuinely absent at this revision (or untracked) — investigate within the worktree; never go hunting for it in the canonical copy or a sibling worktree. The only exceptions are paths the workflow deliberately overlays into the worktree itself (e.g. `.private-claude-content/`), which are already inside the worktree root.
+
 ## PR review workflow
 
 To review a PR numbered `N` in `<org>/<repo>`:
