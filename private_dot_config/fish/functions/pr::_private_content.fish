@@ -12,7 +12,7 @@ function pr::_private_content --description "Clone/update private claude-content
 
     # Overlay paths (relative to worktree root) that should always be excluded
     # from git, whether or not the corresponding symlink ends up being created.
-    set -l overlay_paths $dir .claude/commands/muller CLAUDE.local.md
+    set -l overlay_paths $dir .claude/commands/muller CLAUDE.local.md NOTES
 
     for path in $overlay_paths
         if not grep -qxF -- $path $exclude_file 2>/dev/null
@@ -52,6 +52,55 @@ function pr::_private_content --description "Clone/update private claude-content
             pr::_private_content::link $worktree $dir .claude/skills/$skill_name $link_rel
         end
     end
+
+    pr::_private_content::id_notes $worktree $dir $project
+end
+
+function pr::_private_content::id_notes --description "If the worktree branch is prefixed with a JIRA ticket or PMyyNN effort id, expose its notes/<id> dir as a top-level NOTES symlink and point CLAUDE.local.md at it"
+    set -l worktree $argv[1]
+    set -l dir $argv[2]
+    set -l project $argv[3]
+
+    set -l branch (git -C $worktree rev-parse --abbrev-ref HEAD 2>/dev/null)
+    if test -z "$branch"; or test "$branch" = HEAD
+        return 0
+    end
+    set -l lc (string lower -- $branch)
+
+    # Effort id (pm<yy><nn>) takes precedence; otherwise a JIRA-looking
+    # <letters>-<digits> prefix. Case-insensitive (branch already lowered).
+    set -l id (string match -rg '^(pm[0-9]{4})(?:[-_/]|$)' -- $lc)
+    if test -z "$id"
+        set id (string match -rg '^([a-z][a-z0-9]*-[0-9]+)(?:[-_/]|$)' -- $lc)
+    end
+    if test -z "$id"
+        return 0
+    end
+
+    if not test -d $worktree/$dir/notes/$id
+        echo "No private notes for '$id' (looked for notes/$id in branch $project)"
+        return 0
+    end
+
+    echo "Wiring private notes for '$id' into NOTES/ ..."
+    pr::_private_content::link $worktree $dir notes/$id NOTES
+
+    # CLAUDE.local.md is normally a symlink to the branch-wide overlay
+    # CLAUDE.md; replace it with a generated stub that imports that same
+    # file and additionally points Claude at the per-id NOTES/ directory.
+    set -l clm $worktree/CLAUDE.local.md
+    rm -f $clm
+    begin
+        if test -e $worktree/$dir/CLAUDE.md
+            echo "@$dir/CLAUDE.md"
+            echo
+        end
+        echo "# Working notes: $id"
+        echo
+        echo "Private working notes for \`$id\` are symlinked at \`NOTES/\` (→ \`$dir/notes/$id/\`)."
+        echo "They carry broader context, progress, and findings for this effort/ticket."
+        echo "Read them at the start of the task, and record new findings and progress there."
+    end >$clm
 end
 
 function pr::_private_content::link --description "Symlink an overlay path from .private-claude-content into the worktree, if the source exists"

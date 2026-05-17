@@ -89,3 +89,29 @@ Each `init`/`pull` (both review and summarize) runs the shared helper `pr::_priv
     - `.claude/commands/muller` → `.private-claude-content/.claude/commands/muller` (directory-namespaced; this is the supported pattern for commands).
     - For **each skill** discovered at `.private-claude-content/.claude/skills/<name>/`: symlink `<worktree>/.claude/skills/muller-<name>` → that source. The `muller-` *name* prefix (not a parent dir — Claude Code only discovers skills exactly one level under `.claude/skills/`) avoids collisions with skills the repo carries. Each skill's SKILL.md should also set `name: muller-<name>` in its frontmatter so the discovered name matches. Done dynamically: drop a new skill in the overlay branch and the next `init`/`pull` picks it up — no helper edits needed.
     - `CLAUDE.local.md` → `.private-claude-content/CLAUDE.md` (uses `CLAUDE.local.md` so it loads alongside the repo's own `CLAUDE.md` without conflict — Claude Code appends `CLAUDE.local.md` after `CLAUDE.md` at each directory level).
+
+### Per-id working notes (`notes/<id>` → `NOTES/`)
+
+The helper `pr::_private_content::id_notes` (same file) ties the worktree to
+**work-identifier-scoped notes** in the overlay branch:
+
+- Reads the worktree's checked-out branch and, case-insensitively, extracts a
+  leading **effort id** (`pm<yy><nn>`, e.g. `pm2602`) or **JIRA-looking id**
+  (`<letters>-<digits>`, e.g. `trt-1234`) from its prefix — so a branch
+  `trt-1234-flake-fix` → id `trt-1234`, `pm2602-slow-syncs` → `pm2602`. The
+  effort pattern wins if both could match. Numeric review branches
+  (`N-review`/`N-summarize`/`N-triage`) never match, so review worktrees are
+  unaffected.
+- If the overlay branch contains a `notes/<id>/` directory, symlinks it to a
+  top-level `NOTES/` in the worktree (relative symlink, like the others;
+  `NOTES` is in the always-excluded overlay paths) and **replaces** the
+  `CLAUDE.local.md` symlink with a generated stub that `@`-imports the
+  branch-wide `.private-claude-content/CLAUDE.md` (when present) and then
+  points Claude at `NOTES/` as the effort/ticket's working notes (broader
+  context, progress, findings — read at task start, updated as work proceeds).
+- If no id is found, or the branch matches but the overlay has no `notes/<id>/`
+  (a one-line notice is printed), nothing changes — `CLAUDE.local.md` stays the
+  plain symlink to the branch-wide `CLAUDE.md` as before.
+- Convention: store this content as `notes/<lowercase-id>/…` on the
+  repo-named branch of `claude-content` (e.g. `notes/trt-1234/` on the `sippy`
+  branch, `notes/pm2602/` on the `zettelkasten` branch).
