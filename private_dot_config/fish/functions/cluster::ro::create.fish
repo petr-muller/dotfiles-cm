@@ -99,11 +99,17 @@ function cluster::ro::create --description "Create a read-only (cluster-reader) 
 
     set -l mon_binding $binding-monitoring
 
+    set -l impersonate
+    if not $kube $kctx auth can-i create serviceaccounts -n $sa_ns 2>/dev/null | string match -q yes
+        echo ">> Current user cannot create resources — will use --as system:admin"
+        set impersonate --as=system:admin
+    end
+
     echo ">> Granting read-only (cluster-reader + cluster-monitoring-view) to SA '$sa_name' in '$sa_ns' over $scope"
 
     $kube -n $sa_ns create serviceaccount $sa_name --dry-run=client -o yaml \
         | $kube label --local -f - $label -o yaml --dry-run=client \
-        | $kube $kctx apply -f -
+        | $kube $kctx $impersonate apply -f -
     or return 1
 
     if test -n "$ns"
@@ -112,7 +118,7 @@ function cluster::ro::create --description "Create a read-only (cluster-reader) 
             --serviceaccount=$sa_ns:$sa_name \
             --dry-run=client -o yaml \
             | $kube label --local -f - $label -o yaml --dry-run=client \
-            | $kube $kctx apply -f -
+            | $kube $kctx $impersonate apply -f -
         or return 1
     else
         $kube create clusterrolebinding $binding \
@@ -120,7 +126,7 @@ function cluster::ro::create --description "Create a read-only (cluster-reader) 
             --serviceaccount=$sa_ns:$sa_name \
             --dry-run=client -o yaml \
             | $kube label --local -f - $label -o yaml --dry-run=client \
-            | $kube $kctx apply -f -
+            | $kube $kctx $impersonate apply -f -
         or return 1
     end
 
@@ -136,7 +142,7 @@ function cluster::ro::create --description "Create a read-only (cluster-reader) 
             --serviceaccount=$sa_ns:$sa_name \
             --dry-run=client -o yaml \
             | $kube label --local -f - $label -o yaml --dry-run=client \
-            | $kube $kctx apply -f -
+            | $kube $kctx $impersonate apply -f -
         set -f have_monitoring 1
     else
         echo ">> WARNING: could not grant cluster-monitoring-view (missing role or insufficient permissions)." >&2
@@ -146,7 +152,7 @@ function cluster::ro::create --description "Create a read-only (cluster-reader) 
 
     # Short-lived bound token via the TokenRequest API — no Secret is created.
     echo ">> Requesting a $duration token for $sa_name..."
-    set -l token ($kube $kctx -n $sa_ns create token $sa_name --duration=$duration)
+    set -l token ($kube $kctx $impersonate -n $sa_ns create token $sa_name --duration=$duration)
     or return 1
     if test -z "$token"
         echo "Failed to obtain a token for $sa_name." >&2

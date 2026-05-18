@@ -81,15 +81,21 @@ function cluster::ro::cleanup --description "Remove a read-only ServiceAccount, 
     set -l binding cluster-ro-sa-$sa_ns-$sa_name
     set -l mon_binding $binding-monitoring
 
+    set -l impersonate
+    if not $kube $kctx auth can-i delete serviceaccounts -n $sa_ns 2>/dev/null | string match -q yes
+        echo ">> Current user cannot delete resources — will use --as system:admin"
+        set impersonate --as=system:admin
+    end
+
     echo ">> Removing read-only SA '$sa_name' (ns '$sa_ns')"
 
     if test -n "$ns"
-        $kube $kctx -n $ns delete rolebinding $binding --ignore-not-found
+        $kube $kctx $impersonate -n $ns delete rolebinding $binding --ignore-not-found
     else
-        $kube $kctx delete clusterrolebinding $binding --ignore-not-found
+        $kube $kctx $impersonate delete clusterrolebinding $binding --ignore-not-found
     end
-    $kube $kctx delete clusterrolebinding $mon_binding --ignore-not-found
-    $kube $kctx -n $sa_ns delete serviceaccount $sa_name --ignore-not-found
+    $kube $kctx $impersonate delete clusterrolebinding $mon_binding --ignore-not-found
+    $kube $kctx $impersonate -n $sa_ns delete serviceaccount $sa_name --ignore-not-found
 
     echo ">> Done. Removed the ServiceAccount and its RBAC bindings only."
 end
