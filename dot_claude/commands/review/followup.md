@@ -88,8 +88,8 @@ Write it as a prompt addressed to the agent ("In `<org>/<repo>`, following PR #N
 
 1. Print a one-line tally: accepted vs skipped.
 2. Print each accepted followup's prompt in its **own fenced code block**, titled with the followup, so each is trivially copy-pasteable to dispatch to a separate agent. One block per followup.
-3. **If `REVIEW.md` exists**, append (or replace, on re-runs) a `## Followups` section at the end of it recording each accepted followup — its title, category, necessity, where, and the full handoff prompt (in a fenced block). This keeps the artifact as the durable record. Do not touch the frontmatter or existing findings, and don't create `REVIEW.md` if it's absent.
-4. **If `REVIEW.html` exists**, mirror the same followups into it (add or replace a **Followups** section near the end), styled consistently with the file's existing CSS — read the file and reuse its classes. Each followup: title, a category/necessity badge, the `file:line`/area, and the handoff prompt in a `<pre>` block so it stays copy-pasteable. Keep it in sync with the `REVIEW.md` `## Followups` section. Don't create `REVIEW.html` if it's absent.
+3. **Whenever `REVIEW.md` exists, always** append (or replace, on re-runs) a `## Followups` section at the end of it recording each accepted followup — its title, category, necessity, where, and the full handoff prompt (in a fenced block). This is not optional: if the file is present, the section gets written every run, so the artifact stays the durable record. Do not touch the frontmatter or existing findings, and don't create `REVIEW.md` if it's absent.
+4. **Whenever `REVIEW.html` exists, always** mirror the same followups into it (add or replace a **Followups** section near the end), styled consistently with the file's existing CSS — read the file and reuse its classes. Each followup: title, a category/necessity badge, the `file:line`/area, and the handoff prompt in a `<pre>` block so it stays copy-pasteable. Keep it in sync with the `REVIEW.md` `## Followups` section. Don't create `REVIEW.html` if it's absent.
 
 Do **not** commit, and do **not** start doing the followup work yourself — this command only identifies and hands off.
 
@@ -101,4 +101,5 @@ Do **not** commit, and do **not** start doing the followup work yourself — thi
 - **Followup, not blocker.** If something actually must happen before merge, say so and point at `/review:gate` — don't smuggle it in as "followup".
 - **Be honest about necessity.** Don't inflate a `could` into a `must`. A short, true list beats a long, padded one.
 - **Self-contained prompts.** Each must stand alone for a cold agent on the merged tree — no "see above", no reliance on this session.
+- **Always record into the artifacts.** Whenever `REVIEW.md` / `REVIEW.html` exist, the `Followups` section is written every run — never skip it. (Don't create either file if it's absent.)
 - No emoji, no filler.
