@@ -14,6 +14,25 @@ For repos I don't solely own:
 - `origin` — SSH URL to **my fork**; main push destination
 - `upstream` — HTTPS URL to the **canonical/main repository**
 
+## Sandboxed execution (claude-sandbox)
+
+The `claude` launches used by the workflows below (`pr::review::claude`, `pr::summarize::claude`, `issue::triage::claude`, `work::claude`) run inside a Podman container (`~/.config/claude-sandbox/`), not directly on the host, using a dedicated GitHub identity instead of my own account/SSH key:
+
+- **reviewer** (`petr-muller-reviewer`) — used for review/summarize/triage.
+- **author** (`petr-muller-author`) — used for `work::*` (authoring new changes).
+
+Practical implications:
+- `git push` (or anything needing SSH) to the default `origin`/`upstream` remotes will fail inside these sessions — no SSH key is mounted, by design. For **review/summarize/triage sessions**, publishing is a separate, deliberate step run from the host shell after the session, not something to attempt from inside `claude`: `pr::review::push` / `issue::triage::push` (reviewer identity). These push over HTTPS using the identity's own `GH_TOKEN`, to that identity's own fork of the repo — and only work for **public repos** (neither bot account has access to private repos, including private Red Hat repos); they fall back to my own identity/fork for private repos.
+- Commits made during a `work::claude` session are still authored as me (name/email matching host `~/.gitconfig`/`~/.gitconfig-redhat`) — only the GitHub account used for `gh`/push operations is the bot identity.
+- **`work::claude` sessions (author identity) push and open PRs directly from inside the session** — this is the normal, expected way to publish work-in-progress, not a host-only step. The container has `GH_TOKEN` for `petr-muller-author` and a `gh auth git-credential`-backed credential helper for any `https://github.com` URL (not just the default remotes), so from inside the session, once commits are ready on the work branch:
+  1. Confirm the repo is public: `gh api repos/<org>/<repo> --jq .private` must print `false` — the author account has no access to private repos (including private Red Hat repos); if private, stop and tell me to publish manually instead.
+  2. `gh repo fork <org>/<repo>` (idempotent if already forked).
+  3. `git push https://github.com/petr-muller-author/<repo>.git HEAD:<branch> --force` (branch name matches the worktree's `work-<ID>` id).
+  4. `gh pr create --repo <org>/<repo> --base <upstream-default-branch> --head petr-muller-author:<branch> --title "..." --body "..."` — write the title/body myself, describing the actual change; don't leave this to `--fill`.
+  Then keep babysitting the PR (CI, review feedback) from inside the same session using the `review:watch`/`review:autopilot` pattern, using `gh` directly against `<org>/<repo>#<N>` (the bot account can read/comment on public PRs even without write access to the base repo).
+  The host-side `work::push` fish function still exists as a manual fallback (fork+push only, no PR) but is no longer the primary path.
+- See `~/.config/claude-sandbox/README.md` for mount/credential details and known limitations.
+
 ## Working style
 
 I rarely commit directly in the main working copies — actual work happens in worktrees under `~/Projects/Worktrees/`.
