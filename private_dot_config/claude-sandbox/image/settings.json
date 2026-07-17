@@ -1,0 +1,21 @@
+{
+  "enabledPlugins": {
+    "pr-review-toolkit@claude-plugins-official": true,
+    "ci@ai-helpers": true
+  },
+  "extraKnownMarketplaces": {
+    "ai-helpers": {
+      "source": {
+        "source": "github",
+        "repo": "openshift-eng/ai-helpers"
+      }
+    }
+  },
+  "autoUpdates": false,
+  "alwaysThinkingEnabled": true,
+  "effortLevel": "medium",
+  "statusLine": {
+    "type": "command",
+    "command": "bash /home/claude/.claude/statusline-command.sh"
+  }
+}

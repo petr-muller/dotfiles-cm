@@ -1,0 +1,72 @@
+FROM fedora:latest
+
+RUN dnf -y install \
+        git \
+        nodejs \
+        npm \
+        ca-certificates \
+        ripgrep \
+        jq \
+        ncurses-term \
+        which \
+        procps-ng \
+        gcc \
+        'dnf-command(config-manager)' \
+    && dnf -y config-manager addrepo --from-repofile=https://cli.github.com/packages/rpm/gh-cli.repo \
+    && dnf -y install gh \
+    && dnf clean all
+
+RUN npm install -g @anthropic-ai/claude-code
+
+# Rootless bind mounts can present /workspace with an ownership git doesn't
+# recognize as "mine" by default. This container is a throwaway sandbox
+# scoped to a single worktree mount, so a blanket safe.directory is fine.
+# Baked into system config (not ~/.gitconfig) since the user's .gitconfig is
+# bind-mounted read-only at runtime.
+RUN git config --system --add safe.directory '*'
+
+# Worktrees mounted here point back at fsmonitor state (a Unix socket) from
+# the canonical repo on the host, which is unreachable from inside the
+# container — disable it so git doesn't try to query a dead socket.
+RUN git config --system core.fsmonitor false
+
+RUN useradd --create-home --home-dir /home/claude --shell /bin/bash claude
+
+USER claude
+WORKDIR /workspace
+
+# rustup-managed toolchain (not dnf's rust/cargo/rustfmt/clippy packages):
+# clippy and rustfmt are rustup components, not crates.io packages — `cargo
+# install clippy` doesn't work (it's a placeholder crate that errors out and
+# points at rustup) — so rustup is the only way to get cargo/rustfmt/clippy
+# from one consistent toolchain manager, with cargo-nextest layered on top
+# via a normal `cargo install` since it's a real crate.
+ENV RUSTUP_HOME=/home/claude/.rustup \
+    CARGO_HOME=/home/claude/.cargo \
+    PATH=/home/claude/.cargo/bin:$PATH
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
+    sh -s -- -y --default-toolchain stable --profile default
+RUN cargo install cargo-nextest --locked
+
+# Skeleton ~/.claude so per-run bind mounts (files and dirs) have a valid
+# target to land on - podman errors bind-mounting onto a path that doesn't
+# exist yet.
+RUN mkdir -p \
+        /home/claude/.claude/commands \
+        /home/claude/.claude/plugins \
+        /home/claude/.claude/projects \
+        /home/claude/.config/gcloud \
+    && touch \
+        /home/claude/.claude/CLAUDE.md \
+        /home/claude/.claude/.credentials.json \
+        /home/claude/.claude/statusline-command.sh \
+        /home/claude/.claude/slogans.txt \
+        /home/claude/.claude.json \
+        /home/claude/.config/gcloud/application_default_credentials.json \
+    && chmod 600 /home/claude/.claude/.credentials.json
+
+COPY --chown=claude:claude settings.json /home/claude/.claude/settings.json
+COPY --chown=claude:claude entrypoint.sh /home/claude/entrypoint.sh
+RUN chmod +x /home/claude/entrypoint.sh
+
+ENTRYPOINT ["/home/claude/entrypoint.sh"]

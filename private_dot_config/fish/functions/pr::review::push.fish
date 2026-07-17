@@ -10,6 +10,8 @@ function pr::review::push --description "Commit REVIEW.{html,md} and push the re
         echo "Not in a PR review worktree (expected ~/Projects/Worktrees/github.com/<org>/<repo>/<N>-review): $toplevel" >&2
         return 1
     end
+    set -l org $parts[2]
+    set -l repo $parts[3]
     set -l pr_number $parts[4]
     set -l branch $pr_number-review
 
@@ -19,29 +21,5 @@ function pr::review::push --description "Commit REVIEW.{html,md} and push the re
         return 1
     end
 
-    set -l review_files REVIEW.html REVIEW.md
-    set -l present
-    for f in $review_files
-        if test -f $toplevel/$f
-            set -a present $f
-        end
-    end
-    if test (count $present) -eq 0
-        echo "Neither REVIEW.html nor REVIEW.md found in $toplevel" >&2
-        return 1
-    end
-
-    for f in $present
-        git -C $toplevel add $f
-        or return 1
-    end
-
-    if git -C $toplevel diff --cached --quiet
-        echo "No staged changes to "(string join ", " $present)" — nothing to commit."
-    else
-        git -C $toplevel commit -m "Review of PR $pr_number"
-        or return 1
-    end
-
-    git -C $toplevel push --force-with-lease --set-upstream origin $branch:$branch
+    pr::_push_review_artifacts $toplevel $org $repo $branch "Review of PR $pr_number" REVIEW.html REVIEW.md
 end

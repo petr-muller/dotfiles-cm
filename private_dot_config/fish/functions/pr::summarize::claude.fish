@@ -16,9 +16,9 @@ function pr::summarize::claude --description "Launch claude inside a PR summariz
 
     set -l launcher
     if test -d $HOME/Projects/RH/github.com/$org/$repo
-        set launcher claude_redhat
+        set launcher claude_redhat_sandboxed
     else if test -d $HOME/Projects/Personal/github.com/$org/$repo
-        set launcher claude_mine
+        set launcher claude_mine_sandboxed
     else
         echo "No canonical working copy under ~/Projects/{RH,Personal}/github.com/$org/$repo" >&2
         return 1
