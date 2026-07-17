@@ -51,8 +51,7 @@ Track a backoff counter across cycles (in-session memory): the Fibonacci sequenc
 
 - **New activity found this cycle** (a commit, comment, or review not seen before) → set `pending = true`, **reset the counter to `1`**. Don't act yet — a burst of pushes/comments should land as one batch, not trigger a re-review per event. Skip to "Decide the next wakeup".
 - **No new activity this cycle, and `pending` is false** → genuinely idle. Advance the counter to the next Fibonacci step. Skip to "Decide the next wakeup".
-- **No new activity this cycle, `pending` is true, counter < 3** → still early in the quiet-out; the last burst was recent. Advance the counter to the next Fibonacci step, keep `pending = true`, wait longer.
-- **No new activity this cycle, `pending` is true, counter >= 3** → the quiet period has held for a few backoff steps running. Clear `pending`, proceed to the re-review below.
+- **No new activity this cycle, `pending` is true** → advance the counter to the next Fibonacci step *first*, then check the advanced value: if it's now `>= 3`, the quiet period has held for enough backoff steps — clear `pending` and proceed to the re-review below in this same cycle (don't wait for another cycle to notice). Otherwise keep `pending = true` and skip to "Decide the next wakeup" to wait longer. (Checking the pre-advance value here is the classic off-by-one: it delays the re-review by one whole extra backoff step past when the threshold was actually reached.)
 
 ### Partial re-review
 
