@@ -1,4 +1,12 @@
 function work::claude --description "Launch claude inside a work worktree"
+    argparse 'r/redhat' 'm/mine' -- $argv
+    or return 1
+
+    if set -q _flag_redhat; and set -q _flag_mine
+        echo "Cannot pass both --redhat and --mine" >&2
+        return 1
+    end
+
     set -l toplevel (git rev-parse --show-toplevel 2>/dev/null)
     if test -z "$toplevel"
         echo "Not in a git repository" >&2
@@ -15,7 +23,11 @@ function work::claude --description "Launch claude inside a work worktree"
     set -l work_id $parts[4]
 
     set -l launcher
-    if test -d $HOME/Projects/RH/github.com/$org/$repo
+    if set -q _flag_redhat
+        set launcher claude_redhat_authoring_sandboxed
+    else if set -q _flag_mine
+        set launcher claude_mine_authoring_sandboxed
+    else if test -d $HOME/Projects/RH/github.com/$org/$repo
         set launcher claude_redhat_authoring_sandboxed
     else if test -d $HOME/Projects/Personal/github.com/$org/$repo
         set launcher claude_mine_authoring_sandboxed
@@ -34,5 +46,5 @@ function work::claude --description "Launch claude inside a work worktree"
         end
     end
 
-    $launcher --name "$work_id" "/color orange"
+    $launcher --name "$work_id" "/color orange" $argv
 end
