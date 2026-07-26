@@ -1,6 +1,6 @@
 function claude_redhat_authoring_sandboxed --description "Run claude (RH/Vertex auth) as the author identity inside the review sandbox container against the current worktree"
     set -g __claude_sandbox_extra_args \
-        -v ~/.config/gcloud/application_default_credentials.json:/home/claude/.config/gcloud/application_default_credentials.json:ro,Z \
+        -v ~/.config/gcloud/application_default_credentials.json:/home/claude/.config/gcloud/application_default_credentials.json:ro,z \
         -e GOOGLE_APPLICATION_CREDENTIALS=/home/claude/.config/gcloud/application_default_credentials.json \
         -e CLAUDE_CODE_USE_VERTEX=1 \
         -e CLOUD_ML_REGION=global \

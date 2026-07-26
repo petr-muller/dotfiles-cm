@@ -43,14 +43,14 @@ function claude::sandbox::_run --description "Run the claude-review-sandbox imag
         --rm -it --userns=keep-id \
         -v "$worktree":/workspace:Z \
         -w /workspace \
-        -v "$gitconfig_file":/home/claude/.gitconfig:ro,Z \
-        -v ~/.claude/commands:/home/claude/.claude/commands:ro,Z \
-        -v ~/.claude/plugins:/home/claude/.claude/plugins:ro,Z \
-        -v ~/.claude/CLAUDE.md:/home/claude/.claude/CLAUDE.md:ro,Z \
-        -v ~/.claude/statusline-command.sh:/home/claude/.claude/statusline-command.sh:ro,Z \
-        -v ~/.claude/slogans.txt:/home/claude/.claude/slogans.txt:ro,Z \
+        -v "$gitconfig_file":/home/claude/.gitconfig:ro,z \
+        -v ~/.claude/commands:/home/claude/.claude/commands:ro,z \
+        -v ~/.claude/plugins:/home/claude/.claude/plugins:ro,z \
+        -v ~/.claude/CLAUDE.md:/home/claude/.claude/CLAUDE.md:ro,z \
+        -v ~/.claude/statusline-command.sh:/home/claude/.claude/statusline-command.sh:ro,z \
+        -v ~/.claude/slogans.txt:/home/claude/.claude/slogans.txt:ro,z \
         -v "$project_dir":/home/claude/.claude/projects/-workspace:Z \
-        -v "$claude_json":/home/claude/.claude.json:Z \
+        -v "$claude_json":/home/claude/.claude.json:z \
         -e GH_TOKEN=(cat $token_file) \
         -e TERM=xterm-256color \
         -e COLORTERM="$COLORTERM" \
