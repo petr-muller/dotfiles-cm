@@ -8,6 +8,7 @@ RUN dnf -y install \
         ripgrep \
         jq \
         ncurses-term \
+        diffutils \
         which \
         procps-ng \
         gcc \
