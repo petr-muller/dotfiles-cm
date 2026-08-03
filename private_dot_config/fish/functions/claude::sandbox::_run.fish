@@ -21,6 +21,20 @@ function claude::sandbox::_run --description "Run the claude-review-sandbox imag
     set -l project_dir $HOME/.claude/projects/$worktree_key
     mkdir -p $project_dir
 
+    # oc/cluster access: author-only for now, one kubeconfig per worktree
+    # (different work::claude worktrees legitimately target different
+    # clusters/namespaces at once). Not generated here — pre-create it with
+    # `work::kube::create` from inside the worktree (thin wrapper around
+    # cluster::ro::create keyed the same way as project_dir above). Mounted
+    # only if present so worktrees without one are unaffected.
+    set -l kube_mount_args
+    set -l kubeconfig_file ~/.config/claude-sandbox/kube/$worktree_key.kubeconfig
+    if test "$identity" = author; and test -f $kubeconfig_file
+        set kube_mount_args \
+            -v "$kubeconfig_file":/home/claude/.kube/config:ro,z \
+            -e KUBECONFIG=/home/claude/.kube/config
+    end
+
     # Sandbox-only Claude Code onboarding state — separate per identity,
     # persisted across runs so onboarding only happens once. Bootstrapped
     # with just the two fields that gate the onboarding wizard (taken from
@@ -81,6 +95,7 @@ function claude::sandbox::_run --description "Run the claude-review-sandbox imag
         -e KONSOLE_VERSION="$KONSOLE_VERSION" \
         -e VTE_VERSION="$VTE_VERSION" \
         (claude::sandbox::_worktree_git_mount $worktree) \
+        $kube_mount_args \
         $__claude_sandbox_extra_args
 
     podman run $podman_args claude-review-sandbox:latest $args

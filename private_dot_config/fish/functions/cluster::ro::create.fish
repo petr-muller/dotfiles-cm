@@ -22,6 +22,10 @@ function cluster::ro::create --description "Create a read-only (cluster-reader) 
         echo "Issues a short-lived bound token (TokenRequest API) — the"
         echo "kubeconfig stops working when it expires; just re-run this."
         echo "Run with a context that can create RBAC objects."
+        echo ""
+        echo "Also writes <out>.meta (context/sa/namespace) alongside the"
+        echo "kubeconfig — consumed by 'cluster::ro::cleanup -k <out>' so"
+        echo "cleanup doesn't need those flags repeated."
         return 0
     end
 
@@ -209,6 +213,18 @@ function cluster::ro::create --description "Create a read-only (cluster-reader) 
         printf 'current-context: %s\n' "$outctx"
     end > $out
     umask $old_umask
+
+    # Sidecar metadata so cleanup tooling (cluster::ro::cleanup -k, work::kube::cleanup)
+    # can reconstruct this exact SA/namespace/context without the caller having to
+    # remember or re-pass them.
+    begin
+        printf 'mode=ro\n'
+        printf 'context=%s\n' $srcctx
+        printf 'sa=%s\n' $sa_name
+        printf 'sa_namespace=%s\n' $sa_ns
+        printf 'namespace=%s\n' "$ns"
+    end > $out.meta
+    chmod 600 $out.meta
 
     echo ">> Wrote kubeconfig: $out"
     if test "$have_monitoring" = 1

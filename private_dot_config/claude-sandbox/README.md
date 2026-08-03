@@ -71,6 +71,47 @@ actual `podman run` invocations.
 Neither `secrets/` nor `gitconfig-<identity>` are chezmoi-managed — they're
 runtime-only and machine-local.
 
+4. (Optional, **author** identity only) For `oc` cluster access inside
+   `work::claude` sessions: from inside a work worktree
+   (`~/Projects/Worktrees/github.com/<org>/<repo>/work-<ID>`), run
+   `work::kube::create` (any `cluster::ro::create` flag, e.g. `-c`/`-n`,
+   passes through), e.g.:
+
+   ```
+   work::kube::create -c dpcr
+   ```
+
+   This generates a short-lived, read-only kubeconfig (see
+   `cluster::ro::create -h`) and saves it under
+   `~/.config/claude-sandbox/kube/`, keyed by the worktree's path the same
+   way `claude::sandbox::_run` keys per-worktree Claude Code project dirs
+   (`claude::sandbox::_worktree_key`) — so different `work::claude` worktrees
+   can target different clusters/namespaces at once without clobbering each
+   other. `claude::sandbox::_run` mounts that worktree's kubeconfig read-only
+   to `/home/claude/.kube/config` and sets `KUBECONFIG` whenever the file
+   exists — nothing else to wire up. It's a bound ServiceAccount token
+   (`cluster-reader` + best-effort `cluster-monitoring-view`) and expires
+   (default 24h) — just re-run `work::kube::create` to refresh it. Reviewer
+   sessions don't get cluster access at all. `~/.config/claude-sandbox/kube/`
+   is runtime-only/machine-local like `secrets/`, not chezmoi-managed.
+
+   `cluster::ro::create` needs permission to create ServiceAccounts/RBAC on
+   the target cluster. When that's not available, `work::kube::create
+   --delegate [-c CONTEXT]` instead flattens **your own** current
+   credentials for that context (`oc config view --raw --minify --flatten
+   --context=...`) straight into the worktree kubeconfig — no cluster-side
+   objects created, but **not scoped to read-only**: the sandboxed session
+   gets whatever access your own account has there.
+
+   Either way, `work::kube::cleanup` (no flags needed) tears things down: it
+   reads a `.meta` sidecar written alongside the kubeconfig recording which
+   mode created it (plus context/sa/namespace for the RBAC path), so it
+   knows on its own whether there's a ServiceAccount/RBAC binding to delete
+   server-side (`cluster::ro::cleanup -k <kubeconfig>`) or just a local file
+   to remove (delegate) — nothing to remember or re-pass. `worktree::cleanup`
+   calls it automatically for any `work-*` worktree before removing it, so
+   normal worktree teardown cleans this up too without a separate step.
+
 ## Known limitations (v1)
 
 - No network egress restriction; container gets the default podman bridge

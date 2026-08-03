@@ -18,6 +18,11 @@ RUN dnf -y install \
 
 RUN npm install -g @anthropic-ai/claude-code
 
+# oc: official OpenShift CLI stable release (not dnf-packaged on Fedora).
+RUN curl -sSL https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz \
+        | tar -xz -C /usr/local/bin oc \
+    && chmod +x /usr/local/bin/oc
+
 # Rootless bind mounts can present /workspace with an ownership git doesn't
 # recognize as "mine" by default. This container is a throwaway sandbox
 # scoped to a single worktree mount, so a blanket safe.directory is fine.
@@ -56,6 +61,7 @@ RUN mkdir -p \
         /home/claude/.claude/plugins \
         /home/claude/.claude/projects \
         /home/claude/.config/gcloud \
+        /home/claude/.kube \
     && touch \
         /home/claude/.claude/CLAUDE.md \
         /home/claude/.claude/.credentials.json \
@@ -63,6 +69,7 @@ RUN mkdir -p \
         /home/claude/.claude/slogans.txt \
         /home/claude/.claude.json \
         /home/claude/.config/gcloud/application_default_credentials.json \
+        /home/claude/.kube/config \
     && chmod 600 /home/claude/.claude/.credentials.json
 
 COPY --chown=claude:claude settings.json /home/claude/.claude/settings.json

@@ -64,6 +64,14 @@ function worktree::cleanup --description "From within a worktree: push if it's a
         end
     end
 
+    # Work worktrees may hold cluster credentials scoped to this worktree
+    # (work::kube::create) — tear those down while still inside it, before
+    # the directory (and the ability to resolve its worktree key) disappears.
+    if string match -qr '^work-' -- $name
+        work::kube::cleanup
+        or echo "work::kube::cleanup failed — you may need to clean up cluster credentials manually (cluster::ro::cleanup)." >&2
+    end
+
     # Must leave the worktree before removing it, or cwd becomes invalid.
     cd $repo_root
     or return 1
