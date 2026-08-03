@@ -94,3 +94,13 @@ runtime-only and machine-local.
   bots fully operating on each other's output (author proposing PRs, reviewer
   autonomously reviewing them, with no human in the loop at all) is still out
   of scope.
+- The image's `claude` user is hardcoded to UID/GID 1000 (Containerfile
+  `useradd`). `claude::sandbox::_run`/`_exec` use
+  `--userns=keep-id:uid=1000,gid=1000` (not bare `--userns=keep-id`) to map
+  the *host* user onto that UID inside the container — bare `keep-id` only
+  self-maps the invoking host UID, which does nothing for you on hosts where
+  your UID isn't already 1000 (e.g. a corporate/LDAP account like 11227),
+  leaving `claude` unable to write bind-mounted, host-owned paths (EACCES on
+  transcript writes, `~/.claude/projects/-workspace/*.jsonl` in particular).
+  If the Containerfile's UID for `claude` ever changes, update the `uid=`/`gid=`
+  values in both fish functions to match.

@@ -9,7 +9,9 @@ function claude::sandbox::_exec --description "Run a bash script inside a throwa
     set -l token_file ~/.config/claude-sandbox/secrets/gh-$identity-token
     set -l gitconfig_file ~/.config/claude-sandbox/gitconfig-$identity
 
-    podman run --rm --userns=keep-id \
+    # keep-id:uid=1000,gid=1000: see claude::sandbox::_run for why bare
+    # keep-id isn't enough when the host UID doesn't happen to be 1000.
+    podman run --rm --userns=keep-id:uid=1000,gid=1000 \
         -v "$worktree":/workspace:Z \
         -w /workspace \
         -v "$gitconfig_file":/home/claude/.gitconfig:ro,Z \

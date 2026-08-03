@@ -39,8 +39,26 @@ function claude::sandbox::_run --description "Run the claude-review-sandbox imag
     # fail/fall back oddly (weird colors). xterm-256color is guaranteed
     # present and broadly recognized; COLORTERM is still forwarded for real
     # truecolor detection.
+    #
+    # But forcing TERM this way also blinds Claude Code's own terminal
+    # detection, which decides whether Shift+Enter is natively supported by
+    # checking `TERM.includes("kitty") || process.env.KITTY_WINDOW_ID`
+    # (confirmed by grepping strings out of the installed claude binary) —
+    # with TERM overridden and KITTY_WINDOW_ID unset, it no longer recognizes
+    # kitty and Shift+Enter stops inserting a newline. Forwarding the actual
+    # terminal-identity env vars (which Claude Code also checks per-terminal:
+    # KITTY_WINDOW_ID, TERM_PROGRAM, WT_SESSION, KONSOLE_VERSION,
+    # VTE_VERSION) restores that detection without touching TERM/terminfo.
+    #
+    # keep-id:uid=1000,gid=1000 (not bare keep-id): bare keep-id maps the
+    # invoking host UID to itself inside the container, but the image's
+    # `claude` user is hardcoded to UID/GID 1000 regardless of the host
+    # account's actual UID — on hosts where that differs (e.g. UID 11227),
+    # bare keep-id leaves `claude` unable to write bind-mounted, host-owned
+    # paths (EACCES on transcript writes). Mapping the host UID onto 1000
+    # explicitly makes `claude` the owner as seen from inside the container.
     set -l podman_args \
-        --rm -it --userns=keep-id \
+        --rm -it --userns=keep-id:uid=1000,gid=1000 \
         -v "$worktree":/workspace:Z \
         -w /workspace \
         -v "$gitconfig_file":/home/claude/.gitconfig:ro,z \
@@ -54,6 +72,12 @@ function claude::sandbox::_run --description "Run the claude-review-sandbox imag
         -e GH_TOKEN=(cat $token_file) \
         -e TERM=xterm-256color \
         -e COLORTERM="$COLORTERM" \
+        -e KITTY_WINDOW_ID="$KITTY_WINDOW_ID" \
+        -e TERM_PROGRAM="$TERM_PROGRAM" \
+        -e TERM_PROGRAM_VERSION="$TERM_PROGRAM_VERSION" \
+        -e WT_SESSION="$WT_SESSION" \
+        -e KONSOLE_VERSION="$KONSOLE_VERSION" \
+        -e VTE_VERSION="$VTE_VERSION" \
         (claude::sandbox::_worktree_git_mount $worktree) \
         $__claude_sandbox_extra_args
 
