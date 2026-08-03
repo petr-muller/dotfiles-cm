@@ -12,6 +12,8 @@ Two areas matter, in order:
 1. **Are the important prior findings addressed?** — cross-reference earlier review findings (local `REVIEW.md` + the reviews/comments on the PR) against the current code. Surface mainly the findings that are **not addressed or borderline**; don't re-litigate the ones clearly resolved.
 2. **Is this risky to merge regardless of the reviews?** — independent pass for breakage, with emphasis on upstream projects where we don't control all deployments (existing instances must not break): API changes, configuration changes, behavioral/functional changes.
 
+This is a decision aid **for the maintainer**, not a merge-queue status check. It exists to surface substantive risk — unresolved concerns, unaddressed feedback, backward-incompatible changes — so a human can decide whether to allow the merge. It has nothing to say about CI status, `tide`/merge-queue mechanics, required labels (`lgtm`, `approved`, hold labels), branch protection, or `mergeable`/`mergeStateStatus`/`reviewDecision` — those are mechanical gates GitHub or the merge bot already enforce and report on their own; do not fetch them, do not mention them, and never let a missing label or bot-reported "not mergeable" status drive the verdict. Judge only the substance: what reviewers raised, whether it was addressed, and independent risk in the diff.
+
 ## Establish context
 
 Determine the PR and repo from the worktree, like `/review:address` / `/review:refresh`:
@@ -26,7 +28,7 @@ Read `REVIEW.md` in the worktree root if present. Parse frontmatter (`pr`, `head
 
 Batch these:
 
-1. **Current PR head + state** — `gh pr view <N> --repo <org>/<repo> --json headRefOid,state,mergeable,mergeStateStatus,reviewDecision,labels,title -q .` → `NEW_SHA`. Note merged/closed, `reviewDecision`, and any hold-ish labels (`do-not-merge/hold`, `needs-rebase`, missing `lgtm`/`approved`, etc. — conventions vary by repo).
+1. **Current PR head + state** — `gh pr view <N> --repo <org>/<repo> --json headRefOid,state,title -q .` → `NEW_SHA`. Note only whether it's already merged or closed.
 2. **Make `NEW_SHA` (and `OLD_SHA`) local** — `git fetch upstream pull/<N>/head` (fall back to `origin`).
 3. **What changed since the review** — if `OLD_SHA` is known and reachable: `git log --oneline OLD_SHA..NEW_SHA` and `git diff --stat OLD_SHA..NEW_SHA`. If force-pushed / unreachable, note it and use `gh pr view --json commits`.
 4. **Reviews** — `gh api repos/<org>/<repo>/pulls/<N>/reviews --jq '.[] | select(.state != "PENDING")'`. Note `state` (`CHANGES_REQUESTED`, `APPROVED`, `COMMENTED`), author, `submitted_at`, body.
@@ -74,7 +76,7 @@ For each risk, state the blast radius ("affects every component that imports `pk
 Produce one verdict:
 
 - **merge** — prior gating findings are addressed (or acceptably dispositioned) and no unacceptable merge risk. Note any caveats the author should release-note.
-- **hold** — something should be resolved or confirmed first (an unaddressed should-fix, a risky change lacking a release note or migration path, a reviewer's concern silently dropped, a missing approval/label). Say exactly what unblocks it.
+- **hold** — something should be resolved or confirmed first (an unaddressed should-fix, a risky change lacking a release note or migration path, a reviewer's concern silently dropped, an open question that genuinely needs an answer before merging). Say exactly what unblocks it.
 - **do-not-merge** — an unaddressed blocking finding or a backward-incompatible change that will break existing deployments without justification/gating.
 
 Give a one-paragraph rationale and a short **gating list**: the specific items (with `file:line` and source) that drive the verdict.
