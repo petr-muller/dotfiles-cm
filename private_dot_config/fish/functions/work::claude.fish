@@ -37,13 +37,12 @@ function work::claude --description "Launch claude inside a work worktree"
     end
 
     set -l project_dir $HOME/.claude/projects/(string replace -ra '[/.]' '-' $toplevel)
-    if test -d $project_dir
-        set -l sessions (find $project_dir -maxdepth 1 -name '*.jsonl' -type f 2>/dev/null)
-        if test (count $sessions) -gt 0
-            echo "Found "(count $sessions)" existing session(s) for $toplevel — resuming most recent."
-            $launcher --continue
-            return
-        end
+    if claude::sandbox::_resumable author $toplevel
+        echo "Resuming existing session for $toplevel."
+        $launcher --continue
+        return
+    else if test -d $project_dir; and test (count (find $project_dir -maxdepth 1 -name '*.jsonl' -type f 2>/dev/null)) -gt 0
+        echo "Existing transcript(s) found for $toplevel, but not resumable in this sandbox (stale, or from a different worktree/run under this identity) — starting a fresh session." >&2
     end
 
     $launcher --name "$work_id" "/color orange" $argv

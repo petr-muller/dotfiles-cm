@@ -104,3 +104,18 @@ runtime-only and machine-local.
   transcript writes, `~/.claude/projects/-workspace/*.jsonl` in particular).
   If the Containerfile's UID for `claude` ever changes, update the `uid=`/`gid=`
   values in both fish functions to match.
+- Each identity's `~/.claude.json` (`state/claude.json-<identity>`, mounted
+  as `/home/claude/.claude.json`) tracks session resume state keyed by cwd,
+  which inside the container is always `/workspace` — so it only ever
+  remembers the *most recently used worktree's* session per identity, not one
+  per worktree. Passing `--continue` naively can therefore try to resume a
+  different worktree's session (or none, on a freshly bootstrapped
+  `claude.json-<identity>`) and fail with "No conversation found to
+  continue" even though a real transcript exists on disk for the current
+  worktree. `pr::review::claude`/`pr::summarize::claude`/
+  `issue::triage::claude`/`work::claude` guard against this via
+  `claude::sandbox::_resumable` (host-side check: does the identity's
+  recorded `lastSessionId` actually have a matching `.jsonl` in *this*
+  worktree's mounted project dir?), falling back to a fresh session when it
+  doesn't line up. Genuine interactive resume is still only possible for one
+  worktree at a time per identity.

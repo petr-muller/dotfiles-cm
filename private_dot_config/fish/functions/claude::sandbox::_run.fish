@@ -9,6 +9,8 @@ function claude::sandbox::_run --description "Run the claude-review-sandbox imag
     set -l gitconfig_file ~/.config/claude-sandbox/gitconfig-$identity
 
     set -l worktree (pwd)
+    set -l worktree_key (claude::sandbox::_worktree_key $worktree)
+
     # Keyed by the host worktree path (unique per worktree) so different
     # worktrees never share history, but mounted at the *container's* own
     # project-dir name below — Claude Code encodes its project dir from its
@@ -16,7 +18,7 @@ function claude::sandbox::_run --description "Run the claude-review-sandbox imag
     # "-workspace"), not from the host path. Mounting at the host-path
     # encoding instead would silently miss every write: sessions would land
     # in an unmounted, --rm-discarded directory and never persist.
-    set -l project_dir $HOME/.claude/projects/(string replace -ra '[/.]' '-' $worktree)
+    set -l project_dir $HOME/.claude/projects/$worktree_key
     mkdir -p $project_dir
 
     # Sandbox-only Claude Code onboarding state — separate per identity,
