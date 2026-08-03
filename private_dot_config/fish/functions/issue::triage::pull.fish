@@ -10,6 +10,7 @@ function issue::triage::pull --description "Refresh issue triage branch (reset t
         echo "Not in an issue triage worktree (expected ~/Projects/Worktrees/github.com/<org>/<repo>/<N>-triage): $toplevel" >&2
         return 1
     end
+    set -l org $parts[2]
     set -l repo $parts[3]
     set -l issue_number $parts[4]
     set -l branch $issue_number-triage
@@ -52,27 +53,5 @@ function issue::triage::pull --description "Refresh issue triage branch (reset t
 
     pr::_private_content $toplevel $repo
 
-    if git -C $toplevel rev-parse --verify --quiet origin/$branch >/dev/null
-        set -l triage_files TRIAGE.html TRIAGE.md
-        set -l replay
-        for f in $triage_files
-            if git -C $toplevel cat-file -e origin/$branch:$f 2>/dev/null
-                set -a replay $f
-            end
-        end
-        if test (count $replay) -gt 0
-            echo "Replaying "(string join ", " $replay)" from origin/$branch on top..."
-            for f in $replay
-                git -C $toplevel checkout origin/$branch -- $f
-                or return 1
-                git -C $toplevel add $f
-            end
-            git -C $toplevel commit -m "Triage of issue $issue_number"
-            or return 1
-        else
-            echo "origin/$branch exists but has no TRIAGE.{html,md} — nothing to replay."
-        end
-    else
-        echo "No origin/$branch — nothing to replay."
-    end
+    pr::_replay_artifacts $toplevel $org $repo $branch "Triage of issue $issue_number" TRIAGE.html TRIAGE.md
 end

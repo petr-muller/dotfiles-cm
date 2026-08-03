@@ -10,6 +10,7 @@ function pr::review::pull --description "Refresh PR review branch from remotes (
         echo "Not in a PR review worktree (expected ~/Projects/Worktrees/github.com/<org>/<repo>/<N>-review): $toplevel" >&2
         return 1
     end
+    set -l org $parts[2]
     set -l repo $parts[3]
     set -l pr_number $parts[4]
     set -l branch $pr_number-review
@@ -47,27 +48,5 @@ function pr::review::pull --description "Refresh PR review branch from remotes (
 
     pr::_private_content $toplevel $repo
 
-    if git -C $toplevel rev-parse --verify --quiet origin/$branch >/dev/null
-        set -l review_files REVIEW.html REVIEW.md
-        set -l replay
-        for f in $review_files
-            if git -C $toplevel cat-file -e origin/$branch:$f 2>/dev/null
-                set -a replay $f
-            end
-        end
-        if test (count $replay) -gt 0
-            echo "Replaying "(string join ", " $replay)" from origin/$branch on top..."
-            for f in $replay
-                git -C $toplevel checkout origin/$branch -- $f
-                or return 1
-                git -C $toplevel add $f
-            end
-            git -C $toplevel commit -m "Review of PR $pr_number"
-            or return 1
-        else
-            echo "origin/$branch exists but has no REVIEW.{html,md} — nothing to replay."
-        end
-    else
-        echo "No origin/$branch — nothing to replay."
-    end
+    pr::_replay_artifacts $toplevel $org $repo $branch "Review of PR $pr_number" REVIEW.html REVIEW.md
 end
