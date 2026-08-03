@@ -1,4 +1,12 @@
 function pr::summarize::claude --description "Launch claude inside a PR summarize worktree"
+    argparse 'r/redhat' 'm/mine' -- $argv
+    or return 1
+
+    if set -q _flag_redhat; and set -q _flag_mine
+        echo "Cannot pass both --redhat and --mine" >&2
+        return 1
+    end
+
     set -l toplevel (git rev-parse --show-toplevel 2>/dev/null)
     if test -z "$toplevel"
         echo "Not in a git repository" >&2
@@ -15,7 +23,11 @@ function pr::summarize::claude --description "Launch claude inside a PR summariz
     set -l pr_number $parts[4]
 
     set -l launcher
-    if test -d $HOME/Projects/RH/github.com/$org/$repo
+    if set -q _flag_redhat
+        set launcher claude_redhat_sandboxed
+    else if set -q _flag_mine
+        set launcher claude_mine_sandboxed
+    else if test -d $HOME/Projects/RH/github.com/$org/$repo
         set launcher claude_redhat_sandboxed
     else if test -d $HOME/Projects/Personal/github.com/$org/$repo
         set launcher claude_mine_sandboxed
