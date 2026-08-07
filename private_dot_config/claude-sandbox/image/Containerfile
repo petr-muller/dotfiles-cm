@@ -4,6 +4,7 @@ RUN dnf -y install \
         git \
         nodejs \
         npm \
+        golang \
         ca-certificates \
         ripgrep \
         jq \
@@ -12,11 +13,18 @@ RUN dnf -y install \
         which \
         procps-ng \
         gcc \
+        python3-pip \
         'dnf-command(config-manager)' \
     && dnf -y config-manager addrepo --from-repofile=https://cli.github.com/packages/rpm/gh-cli.repo \
     && dnf -y install gh \
     && dnf clean all
 
+# claude-code is installed here as root, so the unprivileged `claude` user
+# (added below) has no write access to the npm global prefix. Auto-update
+# would fail with "no write permission to npm prefix" every session; updates
+# are applied by rebuilding this image instead, so disable the in-container
+# updater outright.
+ENV DISABLE_AUTOUPDATER=1
 RUN npm install -g @anthropic-ai/claude-code
 
 # oc: official OpenShift CLI stable release (not dnf-packaged on Fedora).
