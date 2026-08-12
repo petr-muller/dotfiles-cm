@@ -54,10 +54,28 @@ The HTML structure must remain consistent with `/review:save` output. The MD str
 
 ## When recommending re-review
 
-Don't modify the artifacts. Print a concise summary to the user containing:
+Even though no re-review is being performed, record the recommendation itself in the artifacts — the findings and rationale that led to it are worth keeping, not just printed to a scrollback that disappears.
+
+Do **not** touch `head_sha` or `reviewed_at` — nothing has actually been reviewed at `NEW_SHA` yet, so the baseline for the *next* refresh's diff must stay at the old review point. Instead:
+
+1. Append an entry to a `recommended_rereview:` list in the frontmatter (create it if absent), newest last:
+   - `at` — now, same UTC `Z`-suffixed format as `reviewed_at`.
+   - `old_sha` / `new_sha`.
+   - `reason` — a one-line summary of which trigger fired.
+2. Add or extend a **Re-review Recommended** section in both `REVIEW.md` and `REVIEW.html` (newest entry first), each entry containing:
+   - Timestamp and SHA range.
+   - What changed: the same bullets as the printed summary (file paths, scope, lines).
+   - Why this exceeds "update in place": which trigger from the rules above fired, spelled out (not just the trigger name — the actual reasoning, e.g. how new code diverges from prior findings).
+   - Activity since the last review (comments/reviews/label changes), same as would appear in an in-place update.
+3. Leave existing findings sections untouched — this is a log entry, not a findings update.
+4. If a previous refresh already recommended re-review and it still hasn't happened, keep both entries (don't overwrite) so the history of repeated recommendations is visible.
+5. Save both files.
+
+Then print a concise summary to the user containing:
 - What changed (a few bullets: file paths, scope, lines).
 - Why this exceeds "update in place" (which trigger from the rules above fired).
-- Suggested action: re-run `/review` (or whichever review skill they use) and then `/review:save`.
+- Suggested action: re-run `/review` (or whichever review skill they use) and then `/review:save` — which will reset `head_sha`/`reviewed_at` and clear the need to carry `recommended_rereview` forward.
+- The two absolute file paths that were updated with the recommendation entry.
 
 End with the literal string `RECOMMENDATION: full re-review` on its own line so it's easy to grep for.
 
@@ -67,7 +85,7 @@ The user sees every tool call (Bash, Edit, Read). Mechanical output (timestamps,
 
 ### Phase 1: Gather and update (silent)
 
-Do all data gathering, timestamp generation, file reads, and artifact edits **first**. Don't print narrative text between tool calls — no "Now updating the HTML" or "Updating timestamps". Just make the calls.
+Do all data gathering, timestamp generation, file reads, and artifact edits **first** — this applies whether updating in place or recording a re-review recommendation; both paths write to the artifacts. Don't print narrative text between tool calls — no "Now updating the HTML" or "Updating timestamps". Just make the calls.
 
 Also fetch the current timestamp (`date -u -Iseconds | sed 's/+00:00/Z/'`) during the gather phase, not as a separate step before edits.
 
