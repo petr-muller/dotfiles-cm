@@ -42,7 +42,9 @@ function pr::summarize::claude --description "Launch claude inside a PR summariz
         $launcher --continue
         return
     else if test -d $project_dir; and test (count (find $project_dir -maxdepth 1 -name '*.jsonl' -type f 2>/dev/null)) -gt 0
-        echo "Existing transcript(s) found for $toplevel, but not resumable in this sandbox (stale, or from a different worktree/run under this identity) — starting a fresh session." >&2
+        echo "Existing transcript(s) found for $toplevel, but this identity's last-session pointer doesn't match this worktree (stale, or from a different worktree/run under this identity) — opening the resume picker." >&2
+        $launcher --resume
+        return
     end
 
     set -l title (gh pr view $pr_number --repo $org/$repo --json title -q .title 2>/dev/null)
