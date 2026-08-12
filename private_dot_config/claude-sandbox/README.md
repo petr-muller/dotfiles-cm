@@ -150,6 +150,33 @@ runtime-only and machine-local.
    calls it automatically for any `work-*` worktree before removing it, so
    normal worktree teardown cleans this up too without a separate step.
 
+## Per-worktree default model
+
+The image's baked-in `image/settings.json` has no `model` key, and
+`claude::sandbox::_run` doesn't mount the host's `~/.claude/settings.json`
+into the container — so every sandboxed session starts on whatever Claude
+Code's own default is, and any `/model` switch made inside a session is lost
+when the container exits (`--rm`), forcing you to switch again on the next
+launch.
+
+To make a worktree remember a model across launches:
+
+```
+claude::sandbox::model::set opus       # or sonnet, or a full model id
+claude::sandbox::model::show
+claude::sandbox::model::clear
+```
+
+This writes/removes the `model` key in `<worktree>/.claude/settings.local.json`
+and adds that path to the worktree's `.git/info/exclude`. It works because
+`claude::sandbox::_run` bind-mounts the whole worktree at `/workspace`
+(`-v "$worktree":/workspace`), and Claude Code reads project-local settings
+from `cwd/.claude/settings.local.json`, which take precedence over the
+image's baked-in `settings.json`. Since the file lives on the host worktree
+rather than in the ephemeral container filesystem, it survives `--rm` and
+even `git reset --hard` (it's untracked). Takes effect on the *next*
+sandboxed launch in that worktree, not the currently running session.
+
 ## Known limitations (v1)
 
 - No network egress restriction; container gets the default podman bridge
