@@ -35,6 +35,28 @@ function claude::sandbox::_run --description "Run the claude-review-sandbox imag
             -e KUBECONFIG=/home/claude/.kube/config
     end
 
+    # RH JIRA access via acli: both identities, but opt-in per worktree (like
+    # kube) rather than on for every session once host credentials exist —
+    # claude::sandbox::jira::enable/disable toggle the per-worktree marker.
+    # There's no separate bot identity for JIRA (unlike the gh-<identity>
+    # tokens), so this exposes *my own* RH JIRA account/permissions inside
+    # the sandbox — see ~/.config/claude-sandbox/README.md. entrypoint.sh
+    # consumes JIRA_TOKEN once (a non-interactive `acli jira auth login`) and
+    # drops it; only JIRA_SITE/JIRA_EMAIL are non-secret and fine to leave
+    # set.
+    set -l jira_mount_args
+    set -l jira_token_file ~/.config/claude-sandbox/secrets/jira-token
+    set -l jira_config_file ~/.config/claude-sandbox/jira-config
+    set -l jira_enabled_file ~/.config/claude-sandbox/jira/$worktree_key.enabled
+    if test -f $jira_token_file; and test -f $jira_config_file; and test -f $jira_enabled_file
+        set -l jira_site (string match -rg '^site=(.*)$' <$jira_config_file)
+        set -l jira_email (string match -rg '^email=(.*)$' <$jira_config_file)
+        set jira_mount_args \
+            -e JIRA_TOKEN=(cat $jira_token_file) \
+            -e JIRA_SITE="$jira_site" \
+            -e JIRA_EMAIL="$jira_email"
+    end
+
     # Sandbox-only Claude Code onboarding state — separate per identity,
     # persisted across runs so onboarding only happens once. Bootstrapped
     # with just the two fields that gate the onboarding wizard (taken from
@@ -96,6 +118,7 @@ function claude::sandbox::_run --description "Run the claude-review-sandbox imag
         -e VTE_VERSION="$VTE_VERSION" \
         (claude::sandbox::_worktree_git_mount $worktree) \
         $kube_mount_args \
+        $jira_mount_args \
         $__claude_sandbox_extra_args
 
     podman run $podman_args claude-review-sandbox:latest $args

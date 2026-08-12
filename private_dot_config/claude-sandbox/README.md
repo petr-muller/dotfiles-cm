@@ -71,7 +71,45 @@ actual `podman run` invocations.
 Neither `secrets/` nor `gitconfig-<identity>` are chezmoi-managed — they're
 runtime-only and machine-local.
 
-4. (Optional, **author** identity only) For `oc` cluster access inside
+4. (Optional, both identities) For RH JIRA access inside sandboxed sessions
+   via `acli`: unlike the GitHub identities, there's no separate bot account
+   for JIRA — this exposes **your own** RH JIRA account/permissions
+   (read/write, whatever your account can do) inside the sandbox. Create an
+   API token at https://id.atlassian.com/manage-profile/security/api-tokens,
+   then:
+
+   ```
+   echo "<api-token>" > ~/.config/claude-sandbox/secrets/jira-token
+   chmod 600 ~/.config/claude-sandbox/secrets/jira-token
+   cat >~/.config/claude-sandbox/jira-config <<EOF
+   site=redhat.atlassian.net
+   email=<your-rh-email>
+   EOF
+   ```
+
+   These two files are host-wide credentials, but mounting them is still
+   **opt-in per worktree** — like the `oc`/kube access below, not on for
+   every session just because the files exist. From inside a worktree, run:
+
+   ```
+   claude::sandbox::jira::enable
+   ```
+
+   which drops a marker at `~/.config/claude-sandbox/jira/<worktree-key>.enabled`
+   (`claude::sandbox::jira::disable` removes it again; `worktree::cleanup`
+   calls that automatically before removing any worktree, so normal teardown
+   cleans this up too). `claude::sandbox::_run` only mounts
+   `JIRA_TOKEN`/`JIRA_SITE`/`JIRA_EMAIL` when the credential files **and**
+   that worktree's marker are all present; `entrypoint.sh` runs a
+   non-interactive `acli jira auth login` at container start and drops
+   `JIRA_TOKEN` from the environment immediately after — nothing persists to
+   disk between `--rm` runs, so this happens fresh on every session start.
+   Worktrees without the marker (the default) are unaffected — no acli login
+   attempted, `acli` simply has no credentials configured. Like `secrets/`
+   and `gitconfig-<identity>`, none of `secrets/jira-token`, `jira-config`,
+   or `jira/` are chezmoi-managed — runtime-only and machine-local.
+
+5. (Optional, **author** identity only) For `oc` cluster access inside
    `work::claude` sessions: from inside a work worktree
    (`~/Projects/Worktrees/github.com/<org>/<repo>/work-<ID>`), run
    `work::kube::create` (any `cluster::ro::create` flag, e.g. `-c`/`-n`,

@@ -72,6 +72,11 @@ function worktree::cleanup --description "From within a worktree: push if it's a
         or echo "work::kube::cleanup failed — you may need to clean up cluster credentials manually (cluster::ro::cleanup)." >&2
     end
 
+    # Any worktree type may have opted in to JIRA access
+    # (claude::sandbox::jira::enable) — drop the marker too; no-op if it was
+    # never enabled.
+    claude::sandbox::jira::disable
+
     # Must leave the worktree before removing it, or cwd becomes invalid.
     cd $repo_root
     or return 1

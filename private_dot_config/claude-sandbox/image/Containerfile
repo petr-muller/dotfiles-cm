@@ -17,6 +17,8 @@ RUN dnf -y install \
         'dnf-command(config-manager)' \
     && dnf -y config-manager addrepo --from-repofile=https://cli.github.com/packages/rpm/gh-cli.repo \
     && dnf -y install gh \
+    && dnf -y config-manager addrepo --from-repofile=https://acli.atlassian.com/linux/rpm/acli.repo \
+    && dnf -y install acli \
     && dnf clean all
 
 # claude-code is installed here as root, so the unprivileged `claude` user
