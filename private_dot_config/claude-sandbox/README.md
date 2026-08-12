@@ -177,6 +177,14 @@ rather than in the ephemeral container filesystem, it survives `--rm` and
 even `git reset --hard` (it's untracked). Takes effect on the *next*
 sandboxed launch in that worktree, not the currently running session.
 
+Every worktree-populating helper (`pr::review::init`/`pull`,
+`pr::summarize::init`/`pull`, `issue::triage::init`/`pull`, `work::init`)
+routes through the shared `pr::_private_content`, which calls
+`claude::sandbox::model::set claude-sonnet-5` on the worktree automatically
+*if and only if* it has no `model` key yet — so freshly populated worktrees
+default to Sonnet 5 instead of falling back to Claude Code's own default,
+while any override you (or a previous default) already set is left alone.
+
 ## Known limitations (v1)
 
 - No network egress restriction; container gets the default podman bridge

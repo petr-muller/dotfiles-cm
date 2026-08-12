@@ -3,7 +3,7 @@ function claude::sandbox::model::set --description "Set the default Claude Code 
     or return 2
 
     if set -q _flag_help
-        echo "Usage: claude::sandbox::model::set <model>"
+        echo "Usage: claude::sandbox::model::set <model> [worktree-path]"
         echo ""
         echo "Writes/updates the \"model\" key in <worktree>/.claude/settings.local.json"
         echo "so sandboxed sessions started in this worktree (claude_{redhat,mine}_{,authoring_}sandboxed)"
@@ -19,22 +19,30 @@ function claude::sandbox::model::set --description "Set the default Claude Code 
         echo "<model> is whatever Claude Code's own /model accepts (e.g. opus, sonnet,"
         echo "or a full model id)."
         echo ""
+        echo "[worktree-path] defaults to the current git worktree's toplevel; pass it"
+        echo "explicitly to target a worktree you haven't cd'd into yet."
+        echo ""
         echo "Takes effect on the next sandboxed launch in this worktree, not the"
         echo "currently running session. Inspect with claude::sandbox::model::show,"
         echo "remove with claude::sandbox::model::clear."
         return 0
     end
 
-    if test (count $argv) -ne 1
-        echo "Usage: claude::sandbox::model::set <model>" >&2
+    if test (count $argv) -lt 1; or test (count $argv) -gt 2
+        echo "Usage: claude::sandbox::model::set <model> [worktree-path]" >&2
         return 2
     end
     set -l model $argv[1]
 
-    set -l toplevel (git rev-parse --show-toplevel 2>/dev/null)
-    if test -z "$toplevel"
-        echo "Not in a git repository" >&2
-        return 1
+    set -l toplevel
+    if test (count $argv) -eq 2
+        set toplevel $argv[2]
+    else
+        set toplevel (git rev-parse --show-toplevel 2>/dev/null)
+        if test -z "$toplevel"
+            echo "Not in a git repository" >&2
+            return 1
+        end
     end
 
     set -l settings_file $toplevel/.claude/settings.local.json

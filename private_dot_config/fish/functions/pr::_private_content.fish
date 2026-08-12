@@ -20,6 +20,8 @@ function pr::_private_content --description "Clone/update private claude-content
         end
     end
 
+    pr::_private_content::default_model $worktree
+
     if not git ls-remote --exit-code --heads $remote_url $project >/dev/null 2>&1
         return 0
     end
@@ -129,4 +131,19 @@ function pr::_private_content::link --description "Symlink an overlay path from 
     set -l target $up$overlay_root/$source_rel
 
     ln -sfn $target $link
+end
+
+function pr::_private_content::default_model --description "Default a freshly-populated worktree's sandboxed model to Sonnet 5, without clobbering an existing per-worktree override"
+    set -l worktree $argv[1]
+
+    set -l settings_file $worktree/.claude/settings.local.json
+    set -l existing_model
+    if test -f $settings_file
+        set existing_model (jq -r '.model // empty' $settings_file 2>/dev/null)
+    end
+    if test -n "$existing_model"
+        return 0
+    end
+
+    claude::sandbox::model::set claude-sonnet-5 $worktree
 end
