@@ -29,10 +29,15 @@ function worktree::cleanup --description "From within a worktree: push if it's a
     # Pushable form factors have a dedicated push helper that commits the
     # artifact and force-pushes the branch to origin.
     set -l push_fn
+    set -l other_fork_owner
     if string match -qr '^[0-9]+-review$' -- $name
         set push_fn pr::review::push
+        set other_fork_owner petr-muller-reviewer
     else if string match -qr '^[0-9]+-triage$' -- $name
         set push_fn issue::triage::push
+        set other_fork_owner petr-muller-reviewer
+    else if string match -qr '^work-' -- $name
+        set other_fork_owner petr-muller-author
     end
 
     if test -n "$push_fn"
@@ -42,9 +47,31 @@ function worktree::cleanup --description "From within a worktree: push if it's a
         end
     end
 
-    # What would be lost by removing this worktree now?
-    set -l dirty (git -C $toplevel status --porcelain)
-    set -l unpushed (git -C $toplevel rev-list HEAD --not --remotes 2>/dev/null)
+    # review::push / triage::push (and work::claude's own in-session push)
+    # publish to the *bot identity's own fork* for public repos, not to
+    # `origin` — see CLAUDE.md's claude-sandbox section. `--not --remotes`
+    # only sees locally configured remotes (origin/upstream), so on its own
+    # it's blind to commits that only exist on that bot fork and would
+    # falsely call them "unpushed". Best-effort fetch that fork's branch so
+    # the loss-check matches where things are actually published.
+    set -l extra_not
+    if test -n "$other_fork_owner"
+        set -l private (gh api repos/$org/$repo --jq .private 2>/dev/null)
+        if test "$private" != true
+            if git -C $toplevel fetch "https://github.com/$other_fork_owner/$repo.git" $name >/dev/null 2>&1
+                # No second --not here: it toggles rev-list's exclude/include
+                # mode rather than adding to it, so this must stay inside the
+                # same --not scope as --remotes below.
+                set extra_not FETCH_HEAD
+            end
+        end
+    end
+
+    # What would be lost by removing this worktree now? (.claude/settings.json
+    # gets rewritten by Claude Code itself during a session — a lone change
+    # there isn't uncommitted work.)
+    set -l dirty (git -C $toplevel status --porcelain | string match -rv '\.claude/settings(\.local)?\.json$')
+    set -l unpushed (git -C $toplevel rev-list HEAD --not --remotes $extra_not 2>/dev/null)
 
     if test -n "$dirty"; or test -n "$unpushed"
         echo ""
