@@ -4,7 +4,7 @@ function claude_redhat_authoring_sandboxed --description "Run claude (RH/Vertex 
         -e GOOGLE_APPLICATION_CREDENTIALS=/home/claude/.config/gcloud/application_default_credentials.json \
         -e CLAUDE_CODE_USE_VERTEX=1 \
         -e CLOUD_ML_REGION=global \
-        -e ANTHROPIC_VERTEX_PROJECT_ID=itpc-gcp-hcm-pe-eng-claude \
+        -e ANTHROPIC_VERTEX_PROJECT_ID=itpc-ca-b9b26cb46d \
         -e GIT_AUTHOR_NAME="Petr Muller" -e GIT_AUTHOR_EMAIL=muller@redhat.com \
         -e GIT_COMMITTER_NAME="Petr Muller" -e GIT_COMMITTER_EMAIL=muller@redhat.com
 

@@ -4,7 +4,7 @@ function claude_redhat_sandboxed --description "Run claude (RH/Vertex auth) insi
         -e GOOGLE_APPLICATION_CREDENTIALS=/home/claude/.config/gcloud/application_default_credentials.json \
         -e CLAUDE_CODE_USE_VERTEX=1 \
         -e CLOUD_ML_REGION=global \
-        -e ANTHROPIC_VERTEX_PROJECT_ID=itpc-gcp-hcm-pe-eng-claude
+        -e ANTHROPIC_VERTEX_PROJECT_ID=itpc-ca-b9b26cb46d
 
     claude::sandbox::_run reviewer $argv
     set -l status_code $status
