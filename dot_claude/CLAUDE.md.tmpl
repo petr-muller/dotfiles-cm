@@ -134,3 +134,20 @@ The helper `pr::_private_content::id_notes` (same file) ties the worktree to
 - Convention: store this content as `notes/<lowercase-id>/…` on the
   repo-named branch of `claude-content` (e.g. `notes/trt-1234/` on the `sippy`
   branch, `notes/pm2602/` on the `zettelkasten` branch).
+
+<!-- benjamin-plus:start -->
+# Benjamin-Plus (token-efficiency skill, injected)
+
+Injected per https://github.com/JetBrains/benjamin-plus-skill's "inject it,
+don't install it" method (a discoverable skill folder tested to save
+nothing). The block below is pulled live from `~/.benjamin-plus/injected-instruction.md`
+at chezmoi-apply time (`run_before_update-benjamin-plus.sh` refreshes that
+checkout via `git pull --ff-only` before this template renders), so it tracks
+upstream automatically -- just run `chezmoi apply`. Landing this in the
+global CLAUDE.md (rather than a SessionStart hook) means it also reaches
+sandboxed claude-sandbox sessions for free, since `claude::sandbox::_run`
+already bind-mounts this file read-only into the container at
+`/home/claude/.claude/CLAUDE.md` — no separate wiring needed there.
+
+{{ output "cat" (joinPath .chezmoi.homeDir ".benjamin-plus" "injected-instruction.md") -}}
+<!-- benjamin-plus:end -->
