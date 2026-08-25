@@ -1,6 +1,9 @@
 function pr::summarize::claude --description "Launch claude inside a PR summarize worktree"
-    argparse 'r/redhat' 'm/mine' -- $argv
+    argparse 'r/redhat' 'm/mine' 'M/model=' -- $argv
     or return 1
+
+    set -q _flag_model
+    or set -l _flag_model haiku
 
     if set -q _flag_redhat; and set -q _flag_mine
         echo "Cannot pass both --redhat and --mine" >&2
@@ -53,5 +56,5 @@ function pr::summarize::claude --description "Launch claude inside a PR summariz
         return 1
     end
 
-    $launcher --name "#$pr_number: $title" "/color purple"
+    $launcher --model $_flag_model --name "#$pr_number: $title" "/color purple"
 end
