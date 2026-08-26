@@ -8,6 +8,15 @@ function claude::sandbox::_run --description "Run the claude-review-sandbox imag
     set -l token_file ~/.config/claude-sandbox/secrets/gh-$identity-token
     set -l gitconfig_file ~/.config/claude-sandbox/gitconfig-$identity
 
+    # Cap CPU usage for reviewer sessions (review/summarize/triage) — a
+    # reviewer building/compiling the repo under test can otherwise pin
+    # every host core. author (work::) sessions are left unrestricted since
+    # they're the actual work being done.
+    set -l cpu_limit_args
+    if test "$identity" != author
+        set cpu_limit_args --cpus=4
+    end
+
     set -l worktree (pwd)
     set -l worktree_key (claude::sandbox::_worktree_key $worktree)
 
@@ -97,11 +106,13 @@ function claude::sandbox::_run --description "Run the claude-review-sandbox imag
     # explicitly makes `claude` the owner as seen from inside the container.
     set -l podman_args \
         --rm -it --userns=keep-id:uid=1000,gid=1000 \
+        $cpu_limit_args \
         -v "$worktree":/workspace:Z \
         -w /workspace \
         -v "$gitconfig_file":/home/claude/.gitconfig:ro,z \
         -v ~/.claude/commands:/home/claude/.claude/commands:ro,z \
         -v ~/.claude/plugins:/home/claude/.claude/plugins:ro,z \
+        -v ~/.claude/skills:/home/claude/.claude/skills:ro,z \
         -v ~/.claude/CLAUDE.md:/home/claude/.claude/CLAUDE.md:ro,z \
         -v ~/.claude/statusline-command.sh:/home/claude/.claude/statusline-command.sh:ro,z \
         -v ~/.claude/slogans.txt:/home/claude/.claude/slogans.txt:ro,z \

@@ -1,6 +1,6 @@
 ---
+name: depbump
 description: Review a PR that bumps a dependency — security/freshness of the release, what changed, and how heavily/sensitively we use it; plus a standard code review if the PR also touches project code
-allowed-tools: Read, Bash, Glob, Grep, WebFetch, Skill
 ---
 
 # Review a dependency-bump PR
@@ -18,11 +18,8 @@ The dependency analysis answers three things, in order:
 
 ## Establish context
 
-Determine the PR and repo from the worktree, the same way `/review:gate` and `/review:address` do:
-- Branch name is typically `N-review` (or `N-summarize`) — extract `N`. Otherwise infer the PR from the checked-out branch via `gh pr view`.
-- `<org>/<repo>` from git remotes (prefer `upstream`, fall back to `origin`).
-
-If the worktree doesn't correspond to a PR, say so and stop.
+Determine the PR and repo from the worktree — see `../../CONVENTIONS.md` ("Establishing
+PR/repo context from a worktree").
 
 The worktree is checked out at the PR head. Get the base to diff against: `BASE=$(git merge-base HEAD <base-branch>)` where the base branch comes from `gh pr view <N> --repo <org>/<repo> --json baseRefName -q .baseRefName` (resolve it to the local tracking ref, e.g. `upstream/<base>`).
 
@@ -100,7 +97,10 @@ For dep-only PRs, skip this entirely — there is no project code to review.
 
 ## Output discipline
 
-I see every tool call. Do all gathering, grepping, changelog reading, and (if applicable) the standard review **first**, without narrating between calls. Then print **one** self-contained summary as the last thing:
+Follow the shared silent-gather-then-single-summary discipline in `../../CONVENTIONS.md`:
+do all gathering, grepping, changelog reading, and (if applicable) the standard review
+first, without narrating between calls. Then print **one** self-contained summary as the
+last thing:
 
 - **Classification** — dep-only or dep + code, and the bumped module(s) with `old → new`.
 - **Per dependency:**

@@ -1,9 +1,12 @@
 ---
+name: watch
 description: Watch a PR you authored for CI failures and review feedback, and converge towards green CI and resolved feedback
-allowed-tools: Read, Write, Edit, Bash, Glob, Grep, ScheduleWakeup
 ---
 
 # Watch and converge my own PR
+
+See `../../CONVENTIONS.md` for the shared Fibonacci-backoff loop pattern and output
+discipline used by this skill and `/review:autopilot`.
 
 Run this from the worktree/branch that authored the PR (a `work::claude` session, typically). This is a **long-running, self-pacing** command — invoke it as `/loop /review:watch` (no interval, so `/loop` self-paces via `ScheduleWakeup`). One cycle = gather signal, act on it, print a summary, schedule the next wakeup. The command keeps cycling until the PR is merged or closed.
 
@@ -57,17 +60,15 @@ Push the branch (`git push`). If push fails (e.g. sandbox identity lacks access)
 
 ## Decide the next wakeup: fibonacci backoff
 
-Track a backoff counter across cycles (in-session memory, not written to disk): the Fibonacci sequence in minutes, `1, 1, 2, 3, 5, 8, 13, 21, 34`, capped at `34` — once you reach `34`, stay there until reset. Start at `1` on the very first cycle.
-
-- **Anything happened this cycle** — a new CI check result (pass/fail/newly pending), a new commit/comment/review from someone else, or an action *you* took (pushed a fix, replied to a thread) — **reset the counter to `1`**. Activity (yours or theirs) means something is in motion; check back soon.
-- **Nothing happened this cycle** (you gathered signal, nothing new, nothing to do) — **advance to the next Fibonacci step** from wherever the counter currently is.
-- **PR merged or closed** → `stop: true`, no further wakeup, regardless of the counter.
+Use the shared backoff counter from `../../CONVENTIONS.md`. Here, "activity" is a new CI
+check result (pass/fail/newly pending), a new commit/comment/review from someone else, or
+an action *you* took (pushed a fix, replied to a thread).
 
 Call `ScheduleWakeup` with `delaySeconds` = counter minutes × 60, `prompt` set to the same `/loop` invocation text the user used to start this (typically `/review:watch`), and a one-sentence `reason` naming what you're waiting for and the current backoff step (e.g. "no activity, backing off to 5 min").
 
 ## Output discipline
 
-Do all gathering, investigation, edits, commits, and replies **first**, without narrating between tool calls. Then print **one** summary as the last thing before scheduling the wakeup:
+Do all gathering, investigation, edits, commits, and replies **first**, without narrating between tool calls (see the shared output-discipline pattern). Then print **one** summary as the last thing before scheduling the wakeup:
 
 - CI state (pass/fail/pending, per check if any are failing).
 - What was addressed this cycle (files changed, one line each).

@@ -1,0 +1,10 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "review",
+  "version": "0.1.0",
+  "description": "PR review, gating, and followup workflows for the pr::review::* worktree helpers",
+  "author": {
+    "name": "Petr Muller",
+    "email": "petr@muller.dev"
+  }
+}

@@ -1,6 +1,6 @@
 ---
+name: gate
 description: Gate a reviewed PR for merge — check that prior findings are addressed and surface independent merge risk, then recommend merge / hold / do-not-merge
-allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 ---
 
 # Gate the PR for merge
@@ -16,13 +16,10 @@ This is a decision aid **for the maintainer**, not a merge-queue status check. I
 
 ## Establish context
 
-Determine the PR and repo from the worktree, like `/review:address` / `/review:refresh`:
-- Branch name is typically `N-review` (or `N-summarize`) — extract `N`. Otherwise infer the PR from the checked-out branch via `gh pr view`.
-- `<org>/<repo>` from git remotes (prefer `upstream`, fall back to `origin`).
+Determine the PR and repo from the worktree — see `../../CONVENTIONS.md` ("Establishing
+PR/repo context from a worktree").
 
-If the worktree doesn't correspond to a PR, say so and stop.
-
-Read `REVIEW.md` in the worktree root if present. Parse frontmatter (`pr`, `head_sha` → `OLD_SHA`, `base`, `reviewed_at`, `verdict`) and the findings list (severities `blocking`, `should-fix`, `nit`, `question`). If absent, gate still runs from the PR-side evidence alone — just note that there's no local review artifact.
+Read `REVIEW.md` in the worktree root if present. Parse frontmatter (`pr`, `head_sha` → `OLD_SHA`, `base`, `reviewed_at`, `verdict`) and the findings list (severity tokens per `../../CONVENTIONS.md`). If absent, gate still runs from the PR-side evidence alone — just note that there's no local review artifact.
 
 ## Gather evidence (parallel, read-only)
 

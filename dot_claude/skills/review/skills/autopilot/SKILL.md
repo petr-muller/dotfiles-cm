@@ -1,9 +1,12 @@
 ---
+name: autopilot
 description: Post a saved review to the PR as a GitHub review, then watch for updates and converge — resolving addressed feedback and approving once mergeable
-allowed-tools: Read, Write, Edit, Bash, Glob, Grep, ScheduleWakeup
 ---
 
 # Post the review and drive it to resolution
+
+See `../../CONVENTIONS.md` for the `REVIEW.md` schema, the shared Fibonacci-backoff loop
+pattern, and output discipline — this skill uses all three.
 
 Run this after `/review` + `/review:save` have produced `REVIEW.md` / `REVIEW.html` in the worktree root. This command does two things, in order, across a **long-running, self-pacing** session — invoke it as `/loop /review:autopilot` (no interval, so `/loop` self-paces via `ScheduleWakeup`):
 
@@ -47,7 +50,8 @@ Compute the latest activity timestamp across all of the above (`new_head`'s push
 
 ### Debounce via the backoff counter itself
 
-Track a backoff counter across cycles (in-session memory): the Fibonacci sequence in minutes, `1, 1, 2, 3, 5, 8, 13, 21, 34`, capped at `34`. Also track a `pending` flag: whether there's unprocessed activity waiting out its quiet period.
+Use the shared Fibonacci backoff counter from `../../CONVENTIONS.md`. Also track a
+`pending` flag: whether there's unprocessed activity waiting out its quiet period.
 
 - **New activity found this cycle** (a commit, comment, or review not seen before) → set `pending = true`, **reset the counter to `1`**. Don't act yet — a burst of pushes/comments should land as one batch, not trigger a re-review per event. Skip to "Decide the next wakeup".
 - **No new activity this cycle, and `pending` is false** → genuinely idle. Advance the counter to the next Fibonacci step. Skip to "Decide the next wakeup".
@@ -88,7 +92,9 @@ Call `ScheduleWakeup` with `delaySeconds` = counter minutes × 60, `prompt` set 
 
 ## Output discipline
 
-Gather, analyze, resolve threads, and edit artifacts **first**, silently. Then print **one** summary as the last thing before scheduling the wakeup:
+Gather, analyze, resolve threads, and edit artifacts **first**, silently (shared
+output-discipline pattern). Then print **one** summary as the last thing before scheduling
+the wakeup:
 
 - What triggered this cycle (or "no new activity" for idle cycles).
 - Findings resolved this cycle (one line each, with the commit that addressed it).

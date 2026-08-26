@@ -1,9 +1,11 @@
 ---
+name: refresh
 description: Inspect PR activity since the last review, summarize, and either update artifacts or recommend a full re-review
-allowed-tools: Read, Write, Edit, Bash
 ---
 
 # Refresh the review
+
+See `../../CONVENTIONS.md` for the `REVIEW.md` schema and the shared output-discipline pattern.
 
 Determine what's changed in the PR since the last review captured by `/review:save`, summarize the development, and either update the existing artifacts with the new findings *or* recommend a full re-review if the changes are substantial.
 
@@ -81,31 +83,20 @@ End with the literal string `RECOMMENDATION: full re-review` on its own line so 
 
 ## Output rules
 
-The user sees every tool call (Bash, Edit, Read). Mechanical output (timestamps, diffs, file edits) drowns out the information the user actually cares about. Structure your work so the human-readable summary comes **last**, after all tool calls are done.
+Follow the shared silent-gather-then-single-summary discipline in `../../CONVENTIONS.md`.
+Fetch the current timestamp (`date -u -Iseconds | sed 's/+00:00/Z/'`) during the gather
+phase, not as a separate step before edits.
 
-### Phase 1: Gather and update (silent)
+The one final summary must be self-contained:
 
-Do all data gathering, timestamp generation, file reads, and artifact edits **first** — this applies whether updating in place or recording a re-review recommendation; both paths write to the artifacts. Don't print narrative text between tool calls — no "Now updating the HTML" or "Updating timestamps". Just make the calls.
+**When updating in place**, include: whether code changed (`OLD_SHA` → `NEW_SHA`, or "no
+code changes"), PR state change if any, activity bullets (who did what, when), and the two
+absolute file paths that were updated.
 
-Also fetch the current timestamp (`date -u -Iseconds | sed 's/+00:00/Z/'`) during the gather phase, not as a separate step before edits.
-
-### Phase 2: Summary (last thing the user sees)
-
-After all tool calls are complete, print a single summary block. This is the **only** narrative output of the entire command. It must be self-contained.
-
-**When updating in place**, include:
-- Whether code changed (`OLD_SHA` → `NEW_SHA`, or "no code changes").
-- PR state change if any (merged, closed).
-- Activity bullets: who did what, when (reviews, comments, approvals, label changes, holds).
-- The two absolute file paths that were updated.
-
-**When recommending re-review**, include the summary described in "When recommending re-review" above.
+**When recommending re-review**, include the summary described in "When recommending
+re-review" above.
 
 **When there's no activity**, just say so and stop. No files to list.
 
-### General
-
-- Be specific: names, paths, SHAs, line counts.
-- Don't repeat existing findings — refer to them by title.
-- No emoji, no filler.
-- Minimize tool calls: batch parallel fetches, do one edit per file when possible.
+Be specific: names, paths, SHAs, line counts. Don't repeat existing findings — refer to
+them by title. Minimize tool calls: batch parallel fetches, one edit per file when possible.

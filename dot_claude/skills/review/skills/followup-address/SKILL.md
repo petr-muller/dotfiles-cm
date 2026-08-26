@@ -1,13 +1,16 @@
 ---
-description: Address the followups recorded by /review:followup for a PR — fetch its REVIEW.md, read the Followups section, and carry out each handoff prompt in this fresh worktree
-allowed-tools: Read, Edit, Write, Bash, Glob, Grep, AskUserQuestion
+name: followup-address
+description: Address the followups recorded by /review:followup and /review:depbump-followup for a PR — fetch its REVIEW.md, read the Followups and Dependency followups sections, and carry out each handoff prompt in this fresh worktree
+argument-hint: [PR-number]
 ---
 
 # Address recorded followups
 
-`/review:followup` walked a PR's post-merge followups and recorded each accepted one — title, category, necessity, where, and a **self-contained handoff prompt** — into a `## Followups` section of that PR's `REVIEW.md`. This command is the other half: run in a **freshly started worktree/branch** (on the merged default branch / current `main`, which is exactly the cold-agent context those prompts were written for) and **do the work** those prompts describe.
+See `../../CONVENTIONS.md` for the handoff-prompt format and how the `review:*` skills chain.
 
-The input is a **PR number**. The followups were already vetted by the user when `/review:followup` ran, so this command doesn't re-judge them — it executes them.
+`/review:followup` and `/review:depbump-followup` each walk a PR's post-merge opportunities and record the accepted ones — title, category, necessity, where, and a **self-contained handoff prompt** — into `## Followups` and `## Dependency followups` sections of that PR's `REVIEW.md`, respectively. This command is the other half of both: run in a **freshly started worktree/branch** (on the merged default branch / current `main`, which is exactly the cold-agent context those prompts were written for) and **do the work** those prompts describe.
+
+The input is a **PR number**. The followups were already vetted by the user when `/review:followup`/`/review:depbump-followup` ran, so this command doesn't re-judge them — it executes them.
 
 ## Establish context
 
@@ -24,15 +27,15 @@ git show FETCH_HEAD:REVIEW.md
 ```
 
 - If the branch doesn't exist on `origin` (fetch fails), there's no published review for this PR — say so and stop.
-- If `REVIEW.md` isn't present on that branch, or it has **no `## Followups` section** (or the section is empty), there are no recorded followups to address — say so and stop. This command never re-derives followups; that's `/review:followup`'s job.
+- If `REVIEW.md` isn't present on that branch, or it has **neither a `## Followups` nor a `## Dependency followups` section** (or both are empty), there are no recorded followups to address — say so and stop. This command never re-derives followups; that's `/review:followup`'s and `/review:depbump-followup`'s job.
 
-Read the whole `REVIEW.md` for context (the findings and frontmatter explain *why* each followup exists), but the **`## Followups` section is what you act on**.
+Read the whole `REVIEW.md` for context (the findings and frontmatter explain *why* each followup exists), but the **`## Followups` and `## Dependency followups` sections are what you act on** — read whichever are present; either may be absent.
 
 ## Parse the followups
 
-From the `## Followups` section, extract each recorded followup: its title, category, necessity (must / should / could), where (`file:line` or area), and — the operative part — its **handoff prompt** (the fenced code block). Each handoff prompt is written to stand alone for a cold agent on the merged tree; that's the instruction set.
+From each present section (`## Followups`, `## Dependency followups`), extract every recorded followup: its title, category, necessity (must / should / could), where (`file:line`, area, or affected call sites), and — the operative part — its **handoff prompt** (the fenced code block). Each handoff prompt is written to stand alone for a cold agent on the merged tree; that's the instruction set. Merge both sections into one combined worklist rather than treating them as separate passes — a dependency followup is addressed exactly like any other.
 
-Present the list back to the user first — one line per followup (`[N/total] {necessity} {category}: {title}`) — so it's clear what's about to happen. Then proceed to address them all without pausing for per-item approval; they were already accepted in `/review:followup`.
+Present the list back to the user first — one line per followup (`[N/total] {necessity} {category}: {title}`), tagging which section each came from if both are present — so it's clear what's about to happen. Then proceed to address them all without pausing for per-item approval; they were already accepted upstream.
 
 ## Address each followup
 
@@ -54,7 +57,7 @@ If a followup turns out to be genuinely ambiguous or risky in a way the prompt d
 
 ## Rules
 
-- **Execute, don't re-judge.** These followups were accepted in `/review:followup`. Address them; don't relitigate whether they're worth doing. Only skip one if it's already done or genuinely no longer applies — and say which.
+- **Execute, don't re-judge.** These followups were accepted in `/review:followup` or `/review:depbump-followup`. Address them; don't relitigate whether they're worth doing. Only skip one if it's already done or genuinely no longer applies — and say which.
 - **The handoff prompt is the spec.** Honor each prompt's acceptance criteria and scope guard. No scope creep across followups or into unrelated tidying.
 - **Read the code first**, in this worktree, before changing it — the merged tree may differ from when the followup was written.
 - **Stay in the worktree.** Source `REVIEW.md` only from `origin/<N>-review`; never read sibling worktrees or the canonical copy.

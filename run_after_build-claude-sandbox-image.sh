@@ -7,7 +7,9 @@ set -euo pipefail
 # unchanged Containerfile would just hit cache and install nothing new).
 if command -v podman >/dev/null 2>&1; then
     echo "claude-sandbox: rebuilding claude-review-sandbox:latest (--no-cache)..."
-    podman build --no-cache -t claude-review-sandbox:latest "$HOME/.config/claude-sandbox/image"
+    # Cap build CPU usage so it doesn't hog every core on the host.
+    podman build --no-cache --cpu-period=100000 --cpu-quota=400000 \
+        -t claude-review-sandbox:latest "$HOME/.config/claude-sandbox/image"
 else
     echo "claude-sandbox: podman not found, skipping image rebuild" >&2
 fi

@@ -1,6 +1,6 @@
 ---
+name: followup
 description: Identify post-merge followup work for a PR about to merge or recently merged, walk each opportunity one at a time, and emit an agent-ready prompt for each one you accept
-allowed-tools: Read, Edit, Write, Bash, Glob, Grep, AskUserQuestion
 ---
 
 # Followup after merge
@@ -13,12 +13,11 @@ It walks each opportunity past you **one at a time**, lets you accept / skip / r
 
 ## Establish context
 
-Determine the PR and repo from the worktree, like `/review:address`:
-- Branch is typically `N-review` (or `N-summarize`) — extract `N`. Otherwise infer from the checked-out branch via `gh pr view`.
-- `<org>/<repo>` from git remotes (prefer `upstream`, fall back to `origin`).
-- Note whether the PR is **open (about to merge)** or **already merged** (`gh pr view <N> --json state,mergedAt,mergeCommit`). If merged, capture the **merge commit SHA** — the followup agent will work on the merged default branch, not this PR's branch.
-
-If the worktree doesn't correspond to a PR, say so and stop.
+Determine the PR and repo from the worktree — see `../../CONVENTIONS.md` ("Establishing
+PR/repo context from a worktree"). Additionally, note whether the PR is **open (about to
+merge)** or **already merged** (`gh pr view <N> --json state,mergedAt,mergeCommit`). If
+merged, capture the **merge commit SHA** — the followup agent will work on the merged
+default branch, not this PR's branch.
 
 Read `REVIEW.md` in the worktree root if present — its open questions, its `should-fix`/`nit`/`question` findings, and anything noted as deferred are prime followup sources.
 
@@ -46,15 +45,16 @@ The point is the maintainer's question, not the bullets. If something genuinely 
 
 ## Form the candidate list
 
-Each candidate has: a short **title**, a **category** (a short label that fits — `cleanup` / `docs` / `tests` / `tech-debt` / `deferred-review` / `todo` / `removal` are common, but coin your own if it captures the idea better), **where** (`file:line` or area), **why it's followup and not part of the merge**, and a **necessity** read — must (will bite if ignored) / should (clearly worth it) / could (nice-to-have). Read the relevant code before forming an opinion; don't just echo a comment. Drop non-followups (anything that actually should block the merge — surface those plainly and suggest `/review:gate` instead).
+Category here is a short label that fits (`cleanup` / `docs` / `tests` / `tech-debt` /
+`deferred-review` / `todo` / `removal` are common, but coin your own if it captures the idea
+better); add **why it's followup and not part of the merge**. Otherwise follow the shared
+candidate shape in `../../CONVENTIONS.md`.
 
 Order most necessary / most valuable first. If there are no real followups, say so and stop.
 
 ## Walk one at a time
 
-For each candidate, present it with `AskUserQuestion`. **One item per message — never batch.**
-
-Question text (adapt naturally):
+Follow the shared walk-and-record loop in `../../CONVENTIONS.md`. Question text (adapt naturally):
 
 ```
 **[N/total] {category}: {title}** (`file/path:line` or area)
@@ -66,32 +66,18 @@ Question text (adapt naturally):
 **Proposed scope:** [what the followup would concretely change/add, tight enough to hand to an agent.]
 ```
 
-Options:
-- **"Accept"** — this becomes a handoff prompt. (Don't write the prompt yet; collect it.)
-- **"Skip"** — drop it, move on.
-- **"Discuss"** — free-form conversation to refine or challenge the proposal. After discussing, **re-present the same item** with `AskUserQuestion`, with the scope revised per the discussion. The user's feedback shapes the eventual prompt.
-
-After Accept or Skip, move straight to the next item — don't ask "continue?".
-
 ## Build each accepted followup's prompt
 
-For every accepted item, compose **one self-contained prompt** for a separate agent. Assume the agent starts **cold** and works on the **merged default branch** (or current `main`), not this PR branch — so it must carry all the context it needs:
-
-- **What and where**: the repo (`<org>/<repo>`), and that this is post-merge followup to **PR #N — "<title>"** (include the merge commit SHA if merged). Name the specific files/areas.
-- **The task**: an imperative instruction describing exactly what to do, incorporating any constraints from the Discuss step.
-- **Acceptance criteria**: how the agent knows it's done (tests pass, doc section added, TODO removed and behavior preserved, etc.).
-- **Scope guard**: state what's out of scope so the agent doesn't sprawl.
+Follow the shared handoff-prompt format in `../../CONVENTIONS.md`. Here, "what and where"
+means the repo (`<org>/<repo>`) and that this is post-merge followup to **PR #N — "<title>"**
+(include the merge commit SHA if merged), plus the specific files/areas.
 
 Write it as a prompt addressed to the agent ("In `<org>/<repo>`, following PR #N … do X. …"), not as a description of a prompt.
 
 ## After all items
 
-1. Print a one-line tally: accepted vs skipped.
-2. Print each accepted followup's prompt in its **own fenced code block**, titled with the followup, so each is trivially copy-pasteable to dispatch to a separate agent. One block per followup.
-3. **Whenever `REVIEW.md` exists, always** append (or replace, on re-runs) a `## Followups` section at the end of it recording each accepted followup — its title, category, necessity, where, and the full handoff prompt (in a fenced block). This is not optional: if the file is present, the section gets written every run, so the artifact stays the durable record. Do not touch the frontmatter or existing findings, and don't create `REVIEW.md` if it's absent.
-4. **Whenever `REVIEW.html` exists, always** mirror the same followups into it (add or replace a **Followups** section near the end), styled consistently with the file's existing CSS — read the file and reuse its classes. Each followup: title, a category/necessity badge, the `file:line`/area, and the handoff prompt in a `<pre>` block so it stays copy-pasteable. Keep it in sync with the `REVIEW.md` `## Followups` section. Don't create `REVIEW.html` if it's absent.
-
-Do **not** commit, and do **not** start doing the followup work yourself — this command only identifies and hands off.
+Follow the shared after-all-items steps in `../../CONVENTIONS.md`. Record into a
+`## Followups` section (MD) / **Followups** section (HTML).
 
 ## Rules
 

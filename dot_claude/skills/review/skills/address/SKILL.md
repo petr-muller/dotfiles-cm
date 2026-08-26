@@ -1,6 +1,6 @@
 ---
+name: address
 description: Walk through PR review feedback one item at a time, deciding whether and how to address each piece
-allowed-tools: Read, Edit, Write, Bash, AskUserQuestion
 ---
 
 # Address PR review feedback
@@ -9,11 +9,8 @@ Gather all review feedback on the current PR, then walk the user through each it
 
 ## Prerequisites
 
-Determine the PR number and repo from the worktree context:
-- The branch name follows the pattern `N-review` or similar — extract `N`.
-- Determine `<org>/<repo>` from the git remotes (prefer `upstream`, fall back to `origin`).
-
-If the worktree doesn't correspond to a PR, tell the user and stop.
+Determine the PR number and repo from the worktree context — see `../../CONVENTIONS.md`
+("Establishing PR/repo context from a worktree").
 
 ## Gather feedback
 
