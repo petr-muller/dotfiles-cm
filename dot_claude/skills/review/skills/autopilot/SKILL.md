@@ -50,12 +50,9 @@ Compute the latest activity timestamp across all of the above (`new_head`'s push
 
 ### Debounce via the backoff counter itself
 
-Use the shared Fibonacci backoff counter from `../../CONVENTIONS.md`. Also track a
-`pending` flag: whether there's unprocessed activity waiting out its quiet period.
-
-- **New activity found this cycle** (a commit, comment, or review not seen before) → set `pending = true`, **reset the counter to `1`**. Don't act yet — a burst of pushes/comments should land as one batch, not trigger a re-review per event. Skip to "Decide the next wakeup".
-- **No new activity this cycle, and `pending` is false** → genuinely idle. Advance the counter to the next Fibonacci step. Skip to "Decide the next wakeup".
-- **No new activity this cycle, `pending` is true** → advance the counter to the next Fibonacci step *first*, then check the advanced value: if it's now `>= 3`, the quiet period has held for enough backoff steps — clear `pending` and proceed to the re-review below in this same cycle (don't wait for another cycle to notice). Otherwise keep `pending = true` and skip to "Decide the next wakeup" to wait longer. (Checking the pre-advance value here is the classic off-by-one: it delays the re-review by one whole extra backoff step past when the threshold was actually reached.)
+Follow the debounced-convergence algorithm ("Debounced convergence (`autopilot` only)") in
+`../../CONVENTIONS.md` exactly — its branch order and the post-advance comparison in branch 3
+are load-bearing, not stylistic.
 
 ### Partial re-review
 

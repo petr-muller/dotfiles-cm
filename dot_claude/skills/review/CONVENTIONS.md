@@ -166,9 +166,26 @@ share a **Fibonacci backoff** in minutes: `1, 1, 2, 3, 5, 8, 13, 21, 34`, capped
 - PR merged/closed → `stop: true`, unconditionally.
 
 Each cycle keeps a running in-session (not on-disk) memory of what's already been
-processed, so the same comment/commit isn't re-handled twice. `autopilot` layers a
-`pending`/debounce flag on top so a burst of activity settles before it triggers a
-partial re-review — see that skill for the exact threshold logic.
+processed, so the same comment/commit isn't re-handled twice.
+
+### Debounced convergence (`autopilot` only)
+
+`autopilot` layers a `pending` flag on top of the plain backoff counter above, so a burst of
+activity settles before it triggers a partial re-review. Each cycle, exactly one of these
+three branches fires — check them in this order:
+
+1. **New activity found this cycle** (a commit, comment, or review not seen before) → set
+   `pending = true`, reset the counter to `1`. Do not act yet. Go to "decide next wakeup".
+2. **No new activity, `pending` is `false`** → genuinely idle. Advance the counter to the
+   next Fibonacci step. Go to "decide next wakeup".
+3. **No new activity, `pending` is `true`** → **advance the counter first**, then compare
+   the *post-advance* value: if `>= 3`, the quiet period has held long enough — clear
+   `pending` and run the partial re-review in this same cycle. Otherwise leave `pending =
+   true` and go to "decide next wakeup" to wait longer.
+
+Branch 3 must compare the counter **after** advancing it, not before — comparing the
+pre-advance value is an off-by-one that delays convergence by one whole extra backoff step
+past the moment the threshold was actually reached.
 
 ## Output discipline
 

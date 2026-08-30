@@ -51,7 +51,14 @@ else
   echo 'No staged changes — nothing to commit.'
 fi
 gh repo fork $org/$repo
-git push https://github.com/petr-muller-reviewer/$repo.git HEAD:$branch --force"
+fork_url=https://github.com/petr-muller-reviewer/$repo.git
+if remote_sha=\$(git ls-remote \$fork_url $branch | cut -f1) && [ -n \"\$remote_sha\" ]; then
+  echo \"Fork branch $branch exists at \$remote_sha — pushing with lease.\"
+  git push \$fork_url HEAD:$branch --force-with-lease=$branch:\$remote_sha
+else
+  echo 'Fork branch $branch does not exist yet — plain push, nothing to clobber.'
+  git push \$fork_url HEAD:$branch
+fi"
 
     claude::sandbox::_exec reviewer $toplevel $script
 end
