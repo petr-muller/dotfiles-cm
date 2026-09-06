@@ -27,12 +27,25 @@ RUN dnf -y install \
 # are applied by rebuilding this image instead, so disable the in-container
 # updater outright.
 ENV DISABLE_AUTOUPDATER=1
-RUN npm install -g @anthropic-ai/claude-code
+RUN npm install -g @anthropic-ai/claude-code @openai/codex
+
+# Separate RUN step: claude-code-wakatime's postinstall shells out to
+# `claude plugin marketplace add`/`claude plugin i`, which needs the `claude`
+# native binary already in place — installing it in the same npm invocation
+# as @anthropic-ai/claude-code races that binary's own postinstall/download
+# and fails with "claude native binary not installed".
+RUN npm install -g claude-code-wakatime
 
 # oc: official OpenShift CLI stable release (not dnf-packaged on Fedora).
 RUN curl -sSL https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz \
         | tar -xz -C /usr/local/bin oc \
     && chmod +x /usr/local/bin/oc
+
+# yq: mikefarah/yq Go binary (not dnf's python yq, which is a jq wrapper
+# with an incompatible CLI).
+RUN curl -sSL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
+        -o /usr/local/bin/yq \
+    && chmod +x /usr/local/bin/yq
 
 # Rootless bind mounts can present /workspace with an ownership git doesn't
 # recognize as "mine" by default. This container is a throwaway sandbox
@@ -73,6 +86,8 @@ RUN mkdir -p \
         /home/claude/.claude/projects \
         /home/claude/.config/gcloud \
         /home/claude/.kube \
+        /home/claude/.agents/skills \
+        /home/claude/.codex/sessions \
     && touch \
         /home/claude/.claude/CLAUDE.md \
         /home/claude/.claude/.credentials.json \
@@ -81,9 +96,11 @@ RUN mkdir -p \
         /home/claude/.claude.json \
         /home/claude/.config/gcloud/application_default_credentials.json \
         /home/claude/.kube/config \
+        /home/claude/.codex/AGENTS.md \
     && chmod 600 /home/claude/.claude/.credentials.json
 
 COPY --chown=claude:claude settings.json /home/claude/.claude/settings.json
+COPY --chown=claude:claude codex-config.toml /home/claude/.codex/config.toml
 COPY --chown=claude:claude entrypoint.sh /home/claude/entrypoint.sh
 RUN chmod +x /home/claude/entrypoint.sh
 

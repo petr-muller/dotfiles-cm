@@ -1,0 +1,45 @@
+# Baked into the image at /home/claude/.codex/config.toml (see Containerfile).
+# No internal sandboxing/approval prompts: the podman container itself is
+# the real isolation boundary (host filesystem/network are untouched
+# regardless), so Codex's own sandbox on top of that just adds prompts
+# without adding safety.
+sandbox_mode = "danger-full-access"
+approval_policy = "never"
+
+# Default to Terra instead of Codex's own recommended default (Sol).
+model = "gpt-5.6-terra"
+
+# Restrict to API-key auth (the only kind this sandbox provides): "apikey" /
+# preferred_auth_method aren't real config keys (verified against upstream
+# source — codex-rs/protocol/src/config_types.rs), the real one is
+# forced_login_method = "api"/"chatgpt". This alone does not skip the login
+# screen — entrypoint.sh's `codex login --with-api-key` does that by
+# pre-writing auth.json — it just keeps ChatGPT off the menu if that step
+# were ever skipped.
+forced_login_method = "api"
+
+# Skip the per-directory trust prompt: cwd inside the container is always
+# /workspace regardless of which host worktree is mounted, so this one
+# entry covers every worktree permanently.
+[projects."/workspace"]
+trust_level = "trusted"
+
+# Closest approximation of the Claude statusline's model/git/dir/context
+# line — Codex only supports picking from a fixed list of built-in items,
+# no custom script/colors/cost/duration/lines-changed.
+[tui]
+status_line = [
+    "model-with-reasoning",
+    "git-branch",
+    "branch-changes",
+    "current-dir",
+    "context-used",
+]
+
+# Codex overwrites the terminal title on every spinner tick, so a title set
+# externally (e.g. from the launching fish function) gets clobbered the
+# instant Codex starts rendering. "thread" is Codex's own auto-generated
+# short summary of the session (from the initial prompt, via a hidden LLM
+# call) — closest equivalent to Claude's `--name`, and it composes with the
+# spinner instead of racing it.
+terminal_title = ["spinner", "thread"]

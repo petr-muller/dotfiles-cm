@@ -13,7 +13,8 @@ two dedicated GitHub identities, never your main account:
 See the fish functions `claude_redhat_sandboxed`/`claude_mine_sandboxed`
 (reviewer), `claude_redhat_authoring_sandboxed`/`claude_mine_authoring_sandboxed`
 (author), and the shared `claude::sandbox::_run`/`_exec`/`_check` for the
-actual `podman run` invocations.
+actual `podman run` invocations. An RH-identity-only Codex (OpenAI)
+alternative also exists — see "Codex (OpenAI) alternative" below.
 
 ## One-time setup
 
@@ -46,6 +47,15 @@ actual `podman run` invocations.
    chmod 700 ~/.config/claude-sandbox/secrets
    echo "ghp_..." > ~/.config/claude-sandbox/secrets/gh-<identity>-token
    chmod 600 ~/.config/claude-sandbox/secrets/gh-<identity>-token
+   ```
+
+   (Optional, only if you want the Codex flows below.) Same directory, one
+   shared OpenAI API key (not per-identity — OpenAI has no separate
+   bot-account concept the way GitHub does here):
+
+   ```
+   echo "sk-..." > ~/.config/claude-sandbox/secrets/openai-api-key
+   chmod 600 ~/.config/claude-sandbox/secrets/openai-api-key
    ```
 
 3. Write that identity's git config to
@@ -149,6 +159,53 @@ runtime-only and machine-local.
    to remove (delegate) — nothing to remember or re-pass. `worktree::cleanup`
    calls it automatically for any `work-*` worktree before removing it, so
    normal worktree teardown cleans this up too without a separate step.
+
+## Codex (OpenAI) alternative — RH identity only
+
+`pr::review::codex`, `pr::summarize::codex`, `issue::triage::codex`, and
+`work::codex` are Codex-CLI counterparts to the four `*::claude` workflow
+functions above, launching `codex_redhat_sandboxed`/`codex_redhat_authoring_sandboxed`
+(mirroring `claude_redhat_sandboxed`/`claude_redhat_authoring_sandboxed`) instead
+of `claude::sandbox::_run`. **RH identity only** — there's no `--mine`
+equivalent or `codex_mine_*` launcher.
+
+Shares the same `claude-review-sandbox:latest` image, worktree mount,
+gitconfig, `GH_TOKEN`, kube, and JIRA plumbing as the Claude flows
+(`codex::sandbox::_run`, parallel to `claude::sandbox::_run`) — entrypoint.sh
+now just `exec`s whatever binary it's given (`claude` or `codex`) rather than
+hardcoding `claude`. What's reused from your Claude config, translated to
+Codex's own paths (mounted at runtime, same as Claude's):
+
+- `~/.claude/skills` → `/home/claude/.agents/skills` (Codex's skill directory;
+  `SKILL.md`'s frontmatter format is close enough to be usable as-is).
+- `~/.claude/CLAUDE.md` → `/home/claude/.codex/AGENTS.md` (Codex's global
+  instructions file).
+- `image/codex-config.toml` (baked in) sets `sandbox_mode = "workspace-write"`
+  and `approval_policy = "on-request"` — Codex's closest match to Claude
+  Code's own default interactive permission behavior in this sandbox.
+
+Not reused: `.claude/commands`, `.claude/plugins`, and `enabledPlugins` in
+`image/settings.json` (Claude-specific formats with no Codex equivalent).
+
+Auth is a plain `OPENAI_API_KEY` env var sourced from
+`secrets/openai-api-key` (see setup above) — no `codex login`/device-code
+flow, no persisted `~/.codex/auth.json`.
+
+Known gaps vs. the Claude flows:
+- Session history persists per identity *and* worktree, at
+  `state/codex-sessions-<identity>-<worktree_key>` → mounted at the
+  container's fixed `/home/claude/.codex/sessions`. This is the same
+  mount-swap trick `claude::sandbox::_run` uses for `project_dir`: cwd inside
+  the container is always `/workspace` regardless of host worktree, so
+  keying the *host-side* directory per worktree is what makes it safe for
+  `codex resume --last` (which just picks the most recent file under
+  `~/.codex/sessions`) to only ever see this worktree's own sessions.
+  `codex::sandbox::_resumable` (parallel to `claude::sandbox::_resumable`)
+  checks that dir for `*.jsonl` files; each `*::codex` entrypoint passes
+  `resume --last` automatically when one exists, otherwise starts fresh
+  seeded with an initial prompt describing the PR/issue.
+- No `--name`/`/color` equivalent (Codex has no TUI session title/color
+  concept).
 
 ## Per-worktree default model
 

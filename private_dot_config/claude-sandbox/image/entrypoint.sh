@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Optional RH JIRA access via acli: JIRA_TOKEN/JIRA_SITE/JIRA_EMAIL are only
-# set (by claude::sandbox::_run) when ~/.config/claude-sandbox/secrets/jira-token
+# set (by claude::sandbox::_run/codex::sandbox::_run) when ~/.config/claude-sandbox/secrets/jira-token
 # and ~/.config/claude-sandbox/jira-config exist on the host. acli has no
 # env-var token auth for ongoing commands, only a one-time `auth login` that
 # persists into (container-local, non-bind-mounted) ~/.config/acli — so log
@@ -14,4 +14,15 @@ if [ -n "${JIRA_TOKEN:-}" ]; then
     unset JIRA_TOKEN
 fi
 
-exec claude "$@"
+# Codex only skips its login screen once ~/.codex/auth.json exists — merely
+# having OPENAI_API_KEY set isn't enough, and this container never persists
+# that file (--rm). `codex login --with-api-key` is the documented
+# non-interactive way to write it (local-only, no network call), so do that
+# here on every start rather than making the user confirm the pre-filled
+# API-key screen by hand each time. OPENAI_API_KEY is only ever set by
+# codex::sandbox::_run, so this is a no-op for claude invocations.
+if [ -n "${OPENAI_API_KEY:-}" ]; then
+    printenv OPENAI_API_KEY | codex login --with-api-key >/dev/null
+fi
+
+exec "$@"

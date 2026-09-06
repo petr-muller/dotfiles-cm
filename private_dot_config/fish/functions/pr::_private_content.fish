@@ -43,15 +43,19 @@ function pr::_private_content --description "Clone/update private claude-content
 
     # Discover skills carried by this branch and symlink each individually under
     # a `muller-` prefix to avoid collisions with the repo's own .claude/skills/.
+    # Linked into both .claude/skills (Claude Code's project-skill convention)
+    # and .agents/skills (Codex's), since the two tools don't share one.
     set -l overlay_skills_dir $worktree/$dir/.claude/skills
     if test -d $overlay_skills_dir
         for skill_path in $overlay_skills_dir/*/
             set -l skill_name (basename $skill_path)
-            set -l link_rel .claude/skills/muller-$skill_name
-            if not grep -qxF -- $link_rel $exclude_file 2>/dev/null
-                echo $link_rel >> $exclude_file
+            for skills_root in .claude/skills .agents/skills
+                set -l link_rel $skills_root/muller-$skill_name
+                if not grep -qxF -- $link_rel $exclude_file 2>/dev/null
+                    echo $link_rel >> $exclude_file
+                end
+                pr::_private_content::link $worktree $dir .claude/skills/$skill_name $link_rel
             end
-            pr::_private_content::link $worktree $dir .claude/skills/$skill_name $link_rel
         end
     end
 

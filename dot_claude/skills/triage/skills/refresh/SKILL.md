@@ -1,11 +1,11 @@
 ---
+name: refresh
 description: Inspect issue activity since the last triage, summarize, and either update artifacts or recommend a full re-triage
-allowed-tools: Read, Write, Edit, Bash
 ---
 
 # Refresh the triage
 
-Determine what's changed on the issue since the last triage captured by `/triage:save`, summarize the development, and either update the existing artifacts with new findings *or* recommend a full re-triage if the changes are substantial.
+Determine what's changed on the issue since the last triage captured by `triage-save`, summarize the development, and either update the existing artifacts with new findings *or* recommend a full re-triage if the changes are substantial.
 
 ## Inputs
 
@@ -54,14 +54,14 @@ Modify `TRIAGE.md` and `TRIAGE.html` together. Keep them in sync.
 4. Update **Recommended next steps** if the actions shifted.
 5. Save both files.
 
-The HTML structure must remain consistent with `/triage:save` output. The MD structure too — `/triage:refresh` may run again later against its own output.
+The HTML structure must remain consistent with `triage-save` output. The MD structure too — `triage-refresh` may run again later against its own output.
 
 ## When recommending re-triage
 
 Don't modify the artifacts. Print a concise summary to the user:
 - What changed (a few bullets: state transitions, key new comments, new PR refs).
 - Why this exceeds "update in place" (which trigger from the rules above fired).
-- Suggested action: re-run the triage workflow and then `/triage:save`.
+- Suggested action: re-run the triage workflow and then `triage-save`.
 
 End with the literal string `RECOMMENDATION: full re-triage` on its own line so it's easy to grep for.
 

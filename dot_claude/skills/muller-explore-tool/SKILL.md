@@ -1,12 +1,11 @@
 ---
+name: muller-explore-tool
 description: Explore tools, libraries, and utilities with interactive walkthroughs
-argument-hint: [URL]
-allowed-tools: WebFetch, WebSearch, Bash, Read, Write
 ---
 
 # Interactive Tool Explorer
 
-I'll create a focused, Claude-assisted 20-30 minute interactive demo for: $1
+I'll create a focused, Claude-assisted 20-30 minute interactive demo for the tool, library, or utility the user named (they'll typically give a name and/or a docs URL).
 
 **TIME CONSTRAINT: The walkthrough MUST be completable in 20-30 minutes maximum.**
 

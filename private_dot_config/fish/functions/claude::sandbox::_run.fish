@@ -110,12 +110,12 @@ function claude::sandbox::_run --description "Run the claude-review-sandbox imag
         -v "$worktree":/workspace:Z \
         -w /workspace \
         -v "$gitconfig_file":/home/claude/.gitconfig:ro,z \
-        -v ~/.claude/commands:/home/claude/.claude/commands:ro,z \
         -v ~/.claude/plugins:/home/claude/.claude/plugins:ro,z \
         -v ~/.claude/skills:/home/claude/.claude/skills:ro,z \
         -v ~/.claude/CLAUDE.md:/home/claude/.claude/CLAUDE.md:ro,z \
         -v ~/.claude/statusline-command.sh:/home/claude/.claude/statusline-command.sh:ro,z \
         -v ~/.claude/slogans.txt:/home/claude/.claude/slogans.txt:ro,z \
+        -v ~/.wakatime.cfg:/home/claude/.wakatime.cfg:ro,z \
         -v "$project_dir":/home/claude/.claude/projects/-workspace:Z \
         -v "$claude_json":/home/claude/.claude.json:z \
         -e GH_TOKEN=(cat $token_file) \
@@ -132,5 +132,8 @@ function claude::sandbox::_run --description "Run the claude-review-sandbox imag
         $jira_mount_args \
         $__claude_sandbox_extra_args
 
-    podman run $podman_args claude-review-sandbox:latest $args
+    # entrypoint.sh execs whatever command follows the image name (it no
+    # longer hardcodes a binary — codex::sandbox::_run shares the same image
+    # and passes `codex` instead), so `claude` must be named explicitly here.
+    podman run $podman_args claude-review-sandbox:latest claude $args
 end

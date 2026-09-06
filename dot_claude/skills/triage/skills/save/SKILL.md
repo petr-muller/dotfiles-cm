@@ -1,6 +1,6 @@
 ---
+name: save
 description: Save the triage just performed as TRIAGE.html (for humans) and TRIAGE.md (for agents)
-allowed-tools: Write, Read, Bash
 ---
 
 # Save the triage
@@ -8,7 +8,7 @@ allowed-tools: Write, Read, Bash
 Produce two artifacts in the repository root, with **identical content** in two formats:
 
 - `TRIAGE.html` — for me to open in a browser as a reference while engaging with the issue (commenting, linking PRs, deciding next steps).
-- `TRIAGE.md` — for a future agent (`/triage:refresh`) to consume. Compact, structured, not for human reading.
+- `TRIAGE.md` — for a future agent (`triage-refresh`) to consume. Compact, structured, not for human reading.
 
 Same findings and verdict in both. Different *encoding*, same *information*.
 
@@ -19,7 +19,7 @@ At the top, embed:
 - Issue title
 - Issue state at triage time: `open` or `closed`
 - Labels at triage time (comma-separated)
-- Triage timestamp in ISO 8601, **UTC with `Z` suffix** (`date -u -Iseconds | sed 's/+00:00/Z/'`). Must match GitHub's timestamp format exactly so `/triage:refresh` can compare it lexicographically against `created_at`/`submitted_at` values from the GitHub API.
+- Triage timestamp in ISO 8601, **UTC with `Z` suffix** (`date -u -Iseconds | sed 's/+00:00/Z/'`). Must match GitHub's timestamp format exactly so `triage-refresh` can compare it lexicographically against `created_at`/`submitted_at` values from the GitHub API.
 - Main SHA at triage time (the worktree is on the `<N>-triage` branch which was reset to upstream default — `git rev-parse HEAD`)
 - The triage verdict (one of: `needs-info`, `accepted`, `duplicate`, `not-a-bug`, `wontfix`, `needs-discussion`)
 
@@ -37,7 +37,7 @@ verdict: accepted
 ---
 ```
 
-`/triage:refresh` parses this frontmatter — keep keys and shape exact.
+`triage-refresh` parses this frontmatter — keep keys and shape exact.
 
 ## TRIAGE.html
 
@@ -85,7 +85,7 @@ Optimized for agent parsing. Rules:
 - relevance: one sentence.
 ```
 
-Tags: `reproducibility`, `cause`, `related-code`, `related-issue`, `related-pr`. Use exactly those tokens — `/triage:refresh` matches on them.
+Tags: `reproducibility`, `cause`, `related-code`, `related-issue`, `related-pr`. Use exactly those tokens — `triage-refresh` matches on them.
 
 - Then short flat sections:
 
