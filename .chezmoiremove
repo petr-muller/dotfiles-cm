@@ -1,0 +1,17 @@
+# Targets that chezmoi used to manage and must now be deleted on every machine.
+#
+# Removing a file from the source state only makes chezmoi stop managing it --
+# the stale copy survives on workstations that already applied it. Listing the
+# target here makes `chezmoi apply` actually delete it.
+#
+# Paths are relative to the destination dir (no leading ~/), globs are allowed,
+# and directories are removed recursively. Entries are idempotent, so they stay
+# here rather than being pruned once machines have caught up.
+
+# Slash commands migrated to skills under dot_claude/skills (nothing remains
+# under dot_claude/commands). Left in place, Claude Code still discovers these
+# as commands and they shadow the skills that replaced them.
+.claude/commands
+
+# Dropped in a8679c9 "kitty: remove projects.session".
+.config/kitty/projects.session
