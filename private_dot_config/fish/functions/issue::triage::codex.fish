@@ -31,5 +31,15 @@ function issue::triage::codex --description "Launch codex inside an issue triage
         return
     end
 
-    codex_redhat_sandboxed "Triaging issue #$issue_number in $org/$repo: $title"
+    # Codex runs YOLO on a fresh session and infers the task from this prompt,
+    # so point it at refresh explicitly when triage artifacts already exist.
+    set -l prompt "Triaging issue #$issue_number in $org/$repo: $title"
+    if test -f $toplevel/TRIAGE.md
+        echo "TRIAGE.md present: steering codex to \$triage:refresh."
+        set prompt "$prompt
+
+TRIAGE.md already exists in this worktree from an earlier triage of this issue. Do NOT start a new triage. Run the \$triage:refresh skill (/home/claude/.agents/skills/triage/skills/refresh/SKILL.md) to inspect issue activity since that triage and update the artifacts or recommend a full re-triage."
+    end
+
+    codex_redhat_sandboxed "$prompt"
 end

@@ -42,6 +42,13 @@ function codex::sandbox::_run --description "Run codex (OpenAI) inside the revie
     cat ~/.claude/CLAUDE.md >$agents_file
     printf '\n\n# Codex sandbox path note\n\nThis session runs inside the codex sandbox container. The worktree described above by its host path (e.g. under `~/Projects/Worktrees/...`) is bind-mounted into this container at the fixed path `/workspace`, which is also this session'"'"'s cwd. The host path itself does not exist inside this container — do not `test -d`/`namei`/`cd` to it. Treat `/workspace` (equivalently `.`/cwd) as that worktree and read/write files there directly.\n' >>$agents_file
 
+    # Codex runs YOLO and, left to itself, publishes to GitHub (posts
+    # reviews/comments, pushes, opens PRs) unprompted. Anything GitHub-visible
+    # must be an explicit user request in the session itself. This also
+    # overrides CLAUDE.md's "work::claude sessions push and open PRs directly"
+    # guidance for Codex author sessions.
+    printf '\n\n# Codex: never publish without an explicit request (IMPORTANT)\n\nThis rule overrides anything above, including the CLAUDE.md guidance that `work::*` sessions push and open PRs directly.\n\nDo NOT take any GitHub-visible or otherwise outward-facing action unless the user explicitly asked for that specific action in this session. That includes: `git push`; `gh pr create`/`gh pr review`/`gh pr comment`/`gh pr merge`/`gh pr close`/`gh pr edit`; `gh issue create`/`gh issue comment`/`gh issue edit`/`gh issue close`; `gh api` calls with a non-GET method; adding labels, reactions, or review-thread resolutions; and running the `review:autopilot` or `review:watch` skills (which post to GitHub). The initial prompt describing the task (e.g. "Reviewing PR #N", "Triaging issue #N") is NOT such a request, and neither is a skill whose steps mention posting.\n\nWhen the work is done, stop at local artifacts (e.g. `REVIEW.md`/`REVIEW.html`, `TRIAGE.md`/`TRIAGE.html`, local commits) and tell the user what you would publish and the exact command; then wait for them to say so. Read-only `gh` usage (`gh pr view`, `gh pr diff`, `gh api` GETs, etc.) is fine.\n' >>$agents_file
+
     set -l kube_mount_args
     set -l kubeconfig_file ~/.config/claude-sandbox/kube/$worktree_key.kubeconfig
     if test "$identity" = author; and test -f $kubeconfig_file

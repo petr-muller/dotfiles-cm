@@ -19,7 +19,9 @@ function pr::review::codex --description "Launch codex inside a PR review worktr
         return 1
     end
 
-    set -l title (gh pr view $pr_number --repo $org/$repo --json title -q .title 2>/dev/null)
+    set -l meta (gh pr view $pr_number --repo $org/$repo --json title,author -q '.title, .author.login' 2>/dev/null)
+    set -l title $meta[1]
+    set -l author $meta[2]
     if test -z "$title"
         echo "Failed to fetch PR title via gh pr view $pr_number --repo $org/$repo" >&2
         return 1
@@ -31,5 +33,23 @@ function pr::review::codex --description "Launch codex inside a PR review worktr
         return
     end
 
-    codex_redhat_sandboxed "Reviewing PR #$pr_number in $org/$repo: $title"
+    # Codex runs YOLO on a fresh session and infers the task from this prompt,
+    # so name the intended skill explicitly instead of letting it guess:
+    # existing review artifacts => refresh; dependency-bot/bump PR => depbump.
+    set -l skills /home/claude/.agents/skills/review/skills
+    set -l prompt "Reviewing PR #$pr_number in $org/$repo: $title"
+    if test -f $toplevel/REVIEW.md
+        echo "REVIEW.md present: steering codex to \$review:refresh."
+        set prompt "$prompt
+
+REVIEW.md already exists in this worktree from an earlier review of this PR. Do NOT start a new review. Run the \$review:refresh skill ($skills/refresh/SKILL.md) to inspect PR activity since that review and update the artifacts or recommend a full re-review."
+    else if string match -qri '^(app/)?(dependabot|renovate)(\[bot\])?$' -- $author
+        or string match -qri '^(\S+\(deps[^)]*\)!?:\s*)?bump\s' -- $title
+        echo "Dependency bump detected (author: $author): steering codex to \$review:depbump."
+        set prompt "$prompt
+
+This PR is a dependency bump (author: $author). Review it with the \$review:depbump skill ($skills/depbump/SKILL.md) rather than a generic full code review."
+    end
+
+    codex_redhat_sandboxed "$prompt"
 end
