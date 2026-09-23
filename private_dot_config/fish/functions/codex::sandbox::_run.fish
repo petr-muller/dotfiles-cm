@@ -29,6 +29,19 @@ function codex::sandbox::_run --description "Run codex (OpenAI) inside the revie
     set -l codex_sessions_dir $state_dir/codex-sessions-$identity-$worktree_key
     mkdir -p $codex_sessions_dir
 
+    # AGENTS.md = host CLAUDE.md + a note clarifying that inside this sandbox
+    # the worktree lives at /workspace (this container's fixed mount point,
+    # == its cwd), not at the absolute host path CLAUDE.md's "Stay inside
+    # the worktree" section refers to — that host path isn't mounted here at
+    # all. Without this, an agent that treats those absolute paths literally
+    # (rather than inferring from its own cwd, like Claude Code does) will
+    # `test -d`/`namei` the host path, find nothing, and wrongly conclude the
+    # worktree is missing/unwritable. Regenerated every run so edits to the
+    # host CLAUDE.md are picked up.
+    set -l agents_file $state_dir/codex-agents-$identity-$worktree_key.md
+    cat ~/.claude/CLAUDE.md >$agents_file
+    printf '\n\n# Codex sandbox path note\n\nThis session runs inside the codex sandbox container. The worktree described above by its host path (e.g. under `~/Projects/Worktrees/...`) is bind-mounted into this container at the fixed path `/workspace`, which is also this session'"'"'s cwd. The host path itself does not exist inside this container — do not `test -d`/`namei`/`cd` to it. Treat `/workspace` (equivalently `.`/cwd) as that worktree and read/write files there directly.\n' >>$agents_file
+
     set -l kube_mount_args
     set -l kubeconfig_file ~/.config/claude-sandbox/kube/$worktree_key.kubeconfig
     if test "$identity" = author; and test -f $kubeconfig_file
@@ -59,7 +72,7 @@ function codex::sandbox::_run --description "Run codex (OpenAI) inside the revie
         -w /workspace \
         -v "$gitconfig_file":/home/claude/.gitconfig:ro,z \
         -v ~/.claude/skills:/home/claude/.agents/skills:ro,z \
-        -v ~/.claude/CLAUDE.md:/home/claude/.codex/AGENTS.md:ro,z \
+        -v "$agents_file":/home/claude/.codex/AGENTS.md:ro,z \
         -v "$codex_sessions_dir":/home/claude/.codex/sessions:Z \
         -e GH_TOKEN=(cat $token_file) \
         -e OPENAI_API_KEY=(cat $openai_key_file) \

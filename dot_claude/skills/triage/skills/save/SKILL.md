@@ -1,29 +1,29 @@
 ---
 name: save
-description: Save the triage just performed as TRIAGE.html (for humans) and TRIAGE.md (for agents)
+description: Save the triage just performed as TRIAGE.md (for agents) and a rendered TRIAGE.html (for humans)
 ---
 
 # Save the triage
 
-Produce two artifacts in the repository root, with **identical content** in two formats:
+See `../../CONVENTIONS.md` for context resolution, pagination, the render step, timestamps, and output discipline.
 
-- `TRIAGE.html` — for me to open in a browser as a reference while engaging with the issue (commenting, linking PRs, deciding next steps).
-- `TRIAGE.md` — for a future agent (`triage-refresh`) to consume. Compact, structured, not for human reading.
+Write `TRIAGE.md` in the repository root, then generate `TRIAGE.html` from it:
 
-Same findings and verdict in both. Different *encoding*, same *information*.
+```
+python3 <skill-base-dir>/../../scripts/render.py TRIAGE.md
+```
 
-## Required metadata in BOTH files
+(`<skill-base-dir>` is this skill's base directory, given when the skill loads.)
 
-At the top, embed:
-- Issue identifier: `org/repo#N`
-- Issue title
-- Issue state at triage time: `open` or `closed`
-- Labels at triage time (comma-separated)
-- Triage timestamp in ISO 8601, **UTC with `Z` suffix** (`date -u -Iseconds | sed 's/+00:00/Z/'`). Must match GitHub's timestamp format exactly so `triage-refresh` can compare it lexicographically against `created_at`/`submitted_at` values from the GitHub API.
-- Main SHA at triage time (the worktree is on the `<N>-triage` branch which was reset to upstream default — `git rev-parse HEAD`)
-- The triage verdict (one of: `needs-info`, `accepted`, `duplicate`, `not-a-bug`, `wontfix`, `needs-discussion`)
+- `TRIAGE.md` — the single source of truth. `/triage:refresh` and `/triage:advise` parse it,
+  so keep keys, section names, and tags exact.
+- `TRIAGE.html` — generated; I open it in a browser as a reference while engaging with the
+  issue (commenting, linking PRs, deciding next steps). Never hand-write or hand-edit it.
+  Everything a human should see must be in the MD body; use plain Markdown, no raw HTML.
 
-In HTML, render this as a header block. In MD, use YAML frontmatter:
+Every `triage:*` skill that changes `TRIAGE.md` re-runs the renderer afterwards.
+
+## Frontmatter
 
 ```yaml
 ---
@@ -32,82 +32,61 @@ title: "..."
 state: open
 labels: bug, area/foo
 main_sha: <full-sha>
-triaged_at: 2026-05-13T17:49:00+02:00
+triaged_at: 2026-05-13T17:49:00Z
 verdict: accepted
 ---
 ```
 
-`triage-refresh` parses this frontmatter — keep keys and shape exact.
+- `state` — `open` or `closed` at triage time. `labels` — comma-separated, at triage time.
+- `main_sha` — `git rev-parse HEAD` (the `<N>-triage` branch is reset to the upstream default branch).
+- `triaged_at` — UTC with a literal `Z` suffix (`date -u -Iseconds | sed 's/+00:00/Z/'`), so it
+  compares lexicographically against GitHub's `created_at`/`submitted_at`.
+- `verdict` — one of `needs-info`, `accepted`, `duplicate`, `not-a-bug`, `wontfix`, `needs-discussion`.
 
-## TRIAGE.html
+Later skills may add `refresh_log:`, `recommended_retriage:`, and `advice:` blocks.
 
-Single self-contained HTML (no external CSS/JS, no network requests). Sans-serif body, monospace for code, comfortable line-height, max-width on text columns.
+## Body sections, in order
 
-Sections, in order:
+```
+# Triage
+## Verdict                  one line + one-paragraph rationale
+## What the issue reports   3-5 bullets in my words, not a copy of the issue body
+## Re-triage recommended    (added by /triage:refresh)
+## Findings                 tagged entries, see below
+## Resolved                 findings later answered/resolved (moved, never deleted)
+## Checked                  what I checked, so I don't re-investigate
+## Next steps               concrete actions: ask the author X, link PR Y, label Z, escalate
+## Advice                   (added by /triage:advise)
+## Open questions           phrased as comments I might leave on the issue
+```
 
-1. **Header** — metadata above plus a link to the issue on GitHub.
-2. **Verdict** — one-line bottom line and a one-paragraph rationale.
-3. **What the issue reports** — 3-5 bullets in my own words. Not a copy of the issue body.
-4. **Analysis** — the meat. Subsections as needed: *Reproducibility / observed behavior*, *Probable cause*, *Related code* (`file:line-range` references with brief excerpts), *Related issues / PRs* (with links and one-line each).
-5. **What I checked** — short list, so I don't re-investigate.
-6. **Recommended next steps** — concrete actions: ask the author X, link to PR Y, label as Z, escalate, etc.
-7. **Open questions** — phrased as comments I might leave on the issue.
-
-## TRIAGE.md
-
-Optimized for agent parsing. Rules:
-
-- YAML frontmatter as above.
-- Compact. No filler, no emoji, no marketing tone.
-- Findings as a flat list of structured entries:
+Findings are a flat list; tags are exactly `reproducibility`, `cause`, `related-code`,
+`related-issue`, `related-pr` — `/triage:refresh` matches on them:
 
 ```markdown
-## Findings
-
 ### [reproducibility] short title
 - detail: one or two sentences.
 - evidence: `file:line-range` or external reference.
-
-### [cause] short title
-...
 
 ### [related-code] short title
 - where: `file/path.go:42-58`
 - excerpt: |
     actual code lines
 
-### [related-issue] short title
-- ref: org/repo#456
-- relevance: one sentence.
-
 ### [related-pr] short title
 - ref: org/repo#789
 - relevance: one sentence.
 ```
 
-Tags: `reproducibility`, `cause`, `related-code`, `related-issue`, `related-pr`. Use exactly those tokens — `triage-refresh` matches on them.
+(`cause` entries use `detail`/`evidence`; `related-issue` uses `ref`/`relevance`.)
 
-- Then short flat sections:
-
-```markdown
-## Checked
-- thing 1
-- thing 2
-
-## Next steps
-- step 1
-- step 2
-
-## Open questions
-- question 1
-```
-
-## Style rules (apply to both files)
+## Style rules
 
 - Be specific. Names, paths, SHAs, line ranges.
 - Quote actual code or comment text, not paraphrases.
 - If uncertain, say so explicitly.
 - Don't restate the issue body verbatim — point to *what matters*.
+- Compact. No filler, no emoji, no marketing tone.
 
 ## After writing
 

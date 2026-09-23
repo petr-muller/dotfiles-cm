@@ -25,9 +25,9 @@ Use `gh` (read-only) and `git` to collect, in parallel where possible:
 1. **Current PR head** — `gh pr view <N> --repo <org>/<repo> --json headRefOid,state,title -q .` → `NEW_SHA`. Also note if the PR was closed or merged.
 2. **New commits** — `git log --oneline OLD_SHA..NEW_SHA` (after `git fetch upstream pull/<N>/head` or `origin pull/<N>/head` to make sure NEW_SHA is local). If the PR was force-pushed and `OLD_SHA` no longer reachable, note that and fall back to `gh pr view --json commits`.
 3. **Diff stats** — `git diff --stat OLD_SHA..NEW_SHA` (or equivalent via gh if needed).
-4. **Issue comments added since `reviewed_at`** — `gh api repos/<org>/<repo>/issues/<N>/comments --jq '.[] | select(.created_at > "<reviewed_at>")'`.
-5. **Review comments (inline) added since `reviewed_at`** — `gh api repos/<org>/<repo>/pulls/<N>/comments --jq '.[] | select(.created_at > "<reviewed_at>")'`.
-6. **Reviews submitted since `reviewed_at`** — `gh api repos/<org>/<repo>/pulls/<N>/reviews --jq '.[] | select(.submitted_at > "<reviewed_at>")'`.
+4. **Issue comments added since `reviewed_at`** — `gh api --paginate repos/<org>/<repo>/issues/<N>/comments --jq '.[] | select(.created_at > "<reviewed_at>")'`.
+5. **Review comments (inline) added since `reviewed_at`** — `gh api --paginate repos/<org>/<repo>/pulls/<N>/comments --jq '.[] | select(.created_at > "<reviewed_at>")'`.
+6. **Reviews submitted since `reviewed_at`** — `gh api --paginate repos/<org>/<repo>/pulls/<N>/reviews --jq '.[] | select(.submitted_at > "<reviewed_at>")'`.
 
 If `OLD_SHA == NEW_SHA` and there are no new comments/reviews → say "no activity since `<reviewed_at>`" and stop.
 
@@ -42,7 +42,7 @@ Minor commits (typo fixes, comment replies, small targeted changes addressing pr
 
 ## When updating in place
 
-Modify `REVIEW.md` and `REVIEW.html` together. Keep them in sync.
+Edit `REVIEW.md`; the HTML is regenerated at the end.
 
 1. Update the frontmatter / header:
    - `head_sha:` → `NEW_SHA`
@@ -50,9 +50,9 @@ Modify `REVIEW.md` and `REVIEW.html` together. Keep them in sync.
    - Add (or extend) a `refresh_log:` list entry recording the previous `head_sha`, the new one, and a one-line summary of what was incorporated.
 2. Update findings: resolve ones the new commits address (move them to a "Resolved" section, don't delete — they're useful history), add new ones surfaced by the new code or comments.
 3. In the **What this PR does** section, append a short paragraph: "Since previous review: ..." with 1-3 bullets.
-4. Save both files.
+4. Save, then regenerate the HTML: `python3 <skill-base-dir>/../../scripts/render.py REVIEW.md`.
 
-The HTML structure must remain consistent with `/review:save` output. The MD structure too — `/review:refresh` may run again later against its own output.
+Keep the MD structure consistent with `/review:save` output — `/review:refresh` may run again later against its own output.
 
 ## When recommending re-review
 
@@ -64,14 +64,14 @@ Do **not** touch `head_sha` or `reviewed_at` — nothing has actually been revie
    - `at` — now, same UTC `Z`-suffixed format as `reviewed_at`.
    - `old_sha` / `new_sha`.
    - `reason` — a one-line summary of which trigger fired.
-2. Add or extend a **Re-review Recommended** section in both `REVIEW.md` and `REVIEW.html` (newest entry first), each entry containing:
+2. Add or extend a `## Re-review recommended` section in `REVIEW.md` (newest entry first; placement per the section order in `../../CONVENTIONS.md`), each entry containing:
    - Timestamp and SHA range.
    - What changed: the same bullets as the printed summary (file paths, scope, lines).
    - Why this exceeds "update in place": which trigger from the rules above fired, spelled out (not just the trigger name — the actual reasoning, e.g. how new code diverges from prior findings).
    - Activity since the last review (comments/reviews/label changes), same as would appear in an in-place update.
 3. Leave existing findings sections untouched — this is a log entry, not a findings update.
 4. If a previous refresh already recommended re-review and it still hasn't happened, keep both entries (don't overwrite) so the history of repeated recommendations is visible.
-5. Save both files.
+5. Save, then regenerate the HTML: `python3 <skill-base-dir>/../../scripts/render.py REVIEW.md`.
 
 Then print a concise summary to the user containing:
 - What changed (a few bullets: file paths, scope, lines).

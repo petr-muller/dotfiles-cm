@@ -28,7 +28,7 @@ Build a picture of what just changed and the ground around it. Batch these:
 1. **PR diff + description** — `gh pr view <N> --repo <org>/<repo> --json title,body,files -q .` and the diff (`git diff <base>...<head>`, or `gh pr diff <N>`).
 2. **TODOs introduced by the PR** — grep the diff / changed files for `TODO`, `FIXME`, `XXX`, `HACK` added in this PR (not pre-existing ones elsewhere).
 3. **`REVIEW.md`** — open questions, unaddressed `should-fix`/`nit` findings, and questions that imply later work.
-4. **Deferred review threads** — `gh api repos/<org>/<repo>/pulls/<N>/comments` and `.../issues/<N>/comments`; look for "follow-up", "in a later PR", "out of scope (for now)", "we should later", "filed/should file an issue", "leaving as TODO". Skip bot noise.
+4. **Deferred review threads** — `gh api --paginate repos/<org>/<repo>/pulls/<N>/comments` and `.../issues/<N>/comments`; look for "follow-up", "in a later PR", "out of scope (for now)", "we should later", "filed/should file an issue", "leaving as TODO". Skip bot noise.
 5. **The neighbourhood** — read the files the PR touched and the code immediately around them, not just the changed lines. The most interesting followups usually live just outside the diff.
 
 Then think like the maintainer asking the question. Don't run a checklist — let the change suggest its own opportunities. To prime that thinking (these are **examples, not a required list** — ignore any that don't fit, and reach for things not on it):
@@ -77,15 +77,4 @@ Write it as a prompt addressed to the agent ("In `<org>/<repo>`, following PR #N
 ## After all items
 
 Follow the shared after-all-items steps in `../../CONVENTIONS.md`. Record into a
-`## Followups` section (MD) / **Followups** section (HTML).
-
-## Rules
-
-- **Answer the maintainer's question, not a checklist.** The categories and example lists are prompts for thinking, not the scope. A creative, well-judged followup that fits no listed category is exactly what's wanted; a rote one that just ticks a box is not.
-- **One item at a time.** Never present multiple followups in a single message.
-- **Read the code** before proposing each item; form your own opinion on whether it's worth doing.
-- **Followup, not blocker.** If something actually must happen before merge, say so and point at `/review:gate` — don't smuggle it in as "followup".
-- **Be honest about necessity.** Don't inflate a `could` into a `must`. A short, true list beats a long, padded one.
-- **Self-contained prompts.** Each must stand alone for a cold agent on the merged tree — no "see above", no reliance on this session.
-- **Always record into the artifacts.** Whenever `REVIEW.md` / `REVIEW.html` exist, the `Followups` section is written every run — never skip it. (Don't create either file if it's absent.)
-- No emoji, no filler.
+`## Followups` section.

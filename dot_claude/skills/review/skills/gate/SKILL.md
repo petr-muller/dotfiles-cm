@@ -28,9 +28,9 @@ Batch these:
 1. **Current PR head + state** — `gh pr view <N> --repo <org>/<repo> --json headRefOid,state,title -q .` → `NEW_SHA`. Note only whether it's already merged or closed.
 2. **Make `NEW_SHA` (and `OLD_SHA`) local** — `git fetch upstream pull/<N>/head` (fall back to `origin`).
 3. **What changed since the review** — if `OLD_SHA` is known and reachable: `git log --oneline OLD_SHA..NEW_SHA` and `git diff --stat OLD_SHA..NEW_SHA`. If force-pushed / unreachable, note it and use `gh pr view --json commits`.
-4. **Reviews** — `gh api repos/<org>/<repo>/pulls/<N>/reviews --jq '.[] | select(.state != "PENDING")'`. Note `state` (`CHANGES_REQUESTED`, `APPROVED`, `COMMENTED`), author, `submitted_at`, body.
-5. **Inline comments** — `gh api repos/<org>/<repo>/pulls/<N>/comments` (path, line, body, author, created_at; group threads).
-6. **Issue comments** — `gh api repos/<org>/<repo>/issues/<N>/comments` (actionable feedback + holds; skip bot noise and pure LGTM).
+4. **Reviews** — `gh api --paginate repos/<org>/<repo>/pulls/<N>/reviews --jq '.[] | select(.state != "PENDING")'`. Note `state` (`CHANGES_REQUESTED`, `APPROVED`, `COMMENTED`), author, `submitted_at`, body.
+5. **Inline comments** — `gh api --paginate repos/<org>/<repo>/pulls/<N>/comments` (path, line, body, author, created_at; group threads).
+6. **Issue comments** — `gh api --paginate repos/<org>/<repo>/issues/<N>/comments` (actionable feedback + holds; skip bot noise and pure LGTM).
 
 ## Assemble the set of important findings
 
@@ -62,7 +62,7 @@ Regardless of what the reviews covered, scan the diff (`OLD_SHA..NEW_SHA` if rev
 ### Use repository skills if available
 
 The repo may carry skills built for exactly this kind of breakage evaluation. **Discover and use them:**
-- Glob `.claude/skills/*/SKILL.md` (includes overlaid `muller-*` skills) and read their `description` frontmatter.
+- Check the skills already listed in your context (they include repo-local and overlaid `muller-*` skills, with their descriptions) — no need to glob for them.
 - If one is suited to the change at hand — e.g. CRD/API-compat review, Go API-surface checks, config-schema validation, or a project-specific compatibility checker — **invoke it via the Skill tool** and fold its findings into this pass.
 - Use judgement: only invoke skills relevant to what the diff actually touches. If none are relevant, do the analysis directly.
 
@@ -80,7 +80,7 @@ Give a one-paragraph rationale and a short **gating list**: the specific items (
 
 ## Persist into REVIEW.* if they exist
 
-If `REVIEW.md` / `REVIEW.html` exist in the worktree root, record the gate outcome **in place**, keeping the two in sync. Do **not** overwrite the original review `verdict` — the gate decision is separate, layered on top.
+If `REVIEW.md` exists in the worktree root, record the gate outcome **in place**. Do **not** overwrite the original review `verdict` — the gate decision is separate, layered on top.
 
 In `REVIEW.md` frontmatter, add/update a `gate:` block:
 
@@ -94,9 +94,9 @@ gate:
 
 And add/update a `## Gate` section in the body (place it right after the frontmatter/`# Review` heading, before `## What this PR does`): the verdict line, the rationale paragraph, the gating list, and the Area-2 risks. On re-runs, replace the previous `## Gate` section rather than appending a second one.
 
-In `REVIEW.html`, mirror this: add a **Gate** callout near the top (just after the existing verdict block) styled consistently with the file's existing CSS — read the file and reuse its classes; a colored box like `.verdict` works (green for merge, amber for hold, red for do-not-merge). Mirror the same gating list and risks. Replace any prior Gate block on re-runs.
+Then regenerate the HTML (`python3 <skill-base-dir>/../../scripts/render.py REVIEW.md`) — the renderer shows `gate.decision` as a colored badge next to the verdict.
 
-If `REVIEW.md` / `REVIEW.html` do **not** exist, don't create them — present the gate decision in the session only.
+If `REVIEW.md` does **not** exist, don't create it — present the gate decision in the session only.
 
 Generate the timestamp during the gather phase (`date -u -Iseconds | sed 's/+00:00/Z/'`), not as a separate step before the edits.
 

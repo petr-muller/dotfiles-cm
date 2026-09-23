@@ -10,33 +10,33 @@ discipline used by this skill and `/review:autopilot`.
 
 Run this from the worktree/branch that authored the PR (a `work::claude` session, typically). This is a **long-running, self-pacing** command — invoke it as `/loop /review:watch` (no interval, so `/loop` self-paces via `ScheduleWakeup`). One cycle = gather signal, act on it, print a summary, schedule the next wakeup. The command keeps cycling until the PR is merged or closed.
 
-Don't re-derive everything from scratch each cycle: this is one continuous session, so keep a running mental record (across cycles, not written to disk) of which CI failures, review comments, and threads you've already handled, dismissed-with-explanation, or deferred — only re-examine an item if it changed (new reply, new push touching it) since you last looked at it.
+Don't re-derive everything from scratch each cycle: record which CI failures, review comments, and threads you've already handled, pushed back on, or deferred in the on-disk state file described in `../../CONVENTIONS.md` ("Loop state lives on disk") — not in memory, which is lost when the conversation is summarized. Only re-examine an item if it changed (new reply, new push touching it) since you last recorded it.
 
 ## Establish context (first cycle only)
 
-Determine the PR from the current branch:
+`<org>/<repo>` from the git remotes (`upstream` if this repo uses that split, else `origin`). In a `work::claude` sandbox the PR's head lives on the bot's fork, so a bare `gh pr view` often can't map the local branch to it — look it up explicitly:
 
 ```
-gh pr view --json number,url,headRefName,baseRefName,state,isDraft,mergeable,reviewDecision -q .
+gh pr list --repo <org>/<repo> --head <branch> --author @me --state open --json number,url,headRefName,baseRefName,isDraft -q .
 ```
 
-`<org>/<repo>` from the git remotes (`origin`, or `upstream` if this repo uses that split). If there's no open PR for the current branch, tell the user and stop — don't schedule a wakeup.
+(`<branch>` = `git branch --show-current`; outside the sandbox, bare `gh pr view` works too.) If there's no open PR for the current branch, tell the user and stop — don't schedule a wakeup.
 
 ## Each cycle: gather signal
 
 Batch these (all read-only):
 
 1. **CI status** — `gh pr checks <N> --json name,state,bucket,link,description -q .` (or `gh pr checks <N>` if `--json` isn't supported by the installed `gh`). Note failing, pending, and passing checks.
-2. **Reviews** — `gh api repos/<org>/<repo>/pulls/<N>/reviews --jq '.[] | select(.state != "PENDING")'`.
-3. **Inline review comments** — `gh api repos/<org>/<repo>/pulls/<N>/comments` (group threaded replies under the root comment).
-4. **Issue-level comments** — `gh api repos/<org>/<repo>/issues/<N>/comments` (skip bot noise unless it's a genuine CI/status bot report).
+2. **Reviews** — `gh api --paginate repos/<org>/<repo>/pulls/<N>/reviews --jq '.[] | select(.state != "PENDING")'`.
+3. **Inline review comments** — `gh api --paginate repos/<org>/<repo>/pulls/<N>/comments` (group threaded replies under the root comment).
+4. **Issue-level comments** — `gh api --paginate repos/<org>/<repo>/issues/<N>/comments` (skip bot noise unless it's a genuine CI/status bot report).
 5. **PR state** — merged/closed, current head SHA, mergeable/reviewDecision.
 
-If the PR is merged or closed: print a short closing summary (final CI state, what was addressed across the session) and call `ScheduleWakeup` with `stop: true`. Done — no further cycles.
+If the PR is merged or closed: print a short closing summary (final CI state, what was addressed across the session) delete the state file, and call `ScheduleWakeup` with `stop: true`. Done — no further cycles.
 
 ## Triage what's new
 
-For each CI failure, reviewer comment, or thread you haven't already handled this session:
+For each CI failure, reviewer comment, or thread not yet recorded as handled in the state file (or changed since):
 
 ### Failing CI
 
@@ -56,7 +56,35 @@ Never leave a piece of actionable feedback completely unacknowledged. Silence re
 
 Batch all the code fixes decided above into one or a few commits with clear, specific messages (what was fixed and why — not "address feedback"). Don't put a bare `#N` in the commit message (GitHub auto-cross-references it into every other issue/PR that gets tagged similarly; say `PR 123` if you need to reference it at all).
 
-Push the branch (`git push`). If push fails (e.g. sandbox identity lacks access), say so plainly in the cycle summary rather than silently giving up — the user needs to know a push didn't land.
+Push to the same place the PR's head lives. In a `work::claude` sandbox there is no SSH key, so a plain `git push` to `origin` fails — push over HTTPS to the author fork instead:
+
+```
+git push https://github.com/petr-muller-author/<repo>.git HEAD:<branch>
+```
+
+(no `--force` unless you rewrote history). Outside the sandbox, plain `git push` is fine. If push fails, say so plainly in the cycle summary rather than silently giving up — the user needs to know a push didn't land.
+
+## Waiting on CI: Monitor, not polling
+
+If checks are still pending at the end of a cycle (typically right after you pushed), arm a
+`Monitor` that emits one line per check as it completes and exits once none are pending —
+covering every terminal bucket, not just pass:
+
+```
+prev=""
+while true; do
+  s=$(gh pr checks <N> --repo <org>/<repo> --json name,bucket 2>/dev/null) || { sleep 60; continue; }
+  cur=$(jq -r '.[] | select(.bucket!="pending") | "\(.name): \(.bucket)"' <<<"$s" | sort)
+  comm -13 <(echo "$prev") <(echo "$cur"); prev=$cur
+  jq -e 'all(.bucket!="pending")' <<<"$s" >/dev/null && break
+  sleep 60
+done
+```
+
+(`timeout_ms` at the maximum; re-arm on expiry while checks are still pending.) Each
+`fail` event starts the "Failing CI" triage right away instead of waiting for the next
+backoff step. Still schedule the backoff wakeup below as the fallback for review activity —
+the Monitor covers CI only.
 
 ## Decide the next wakeup: fibonacci backoff
 
@@ -64,7 +92,7 @@ Use the shared backoff counter from `../../CONVENTIONS.md`. Here, "activity" is 
 check result (pass/fail/newly pending), a new commit/comment/review from someone else, or
 an action *you* took (pushed a fix, replied to a thread).
 
-Call `ScheduleWakeup` with `delaySeconds` = counter minutes × 60, `prompt` set to the same `/loop` invocation text the user used to start this (typically `/review:watch`), and a one-sentence `reason` naming what you're waiting for and the current backoff step (e.g. "no activity, backing off to 5 min").
+Write the state file (counter, handled items, last head), then call `ScheduleWakeup` with `delaySeconds` = counter minutes × 60, `noop` per `../../CONVENTIONS.md`, `prompt` set to the same `/loop` invocation text the user used to start this (typically `/review:watch`), and a one-sentence `reason` naming what you're waiting for and the current backoff step (e.g. "no activity, backing off to 5 min").
 
 ## Output discipline
 

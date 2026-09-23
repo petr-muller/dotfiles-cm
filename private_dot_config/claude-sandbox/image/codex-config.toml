@@ -24,6 +24,16 @@ forced_login_method = "api"
 [projects."/workspace"]
 trust_level = "trusted"
 
+# gopls (Go language server) via mcp-language-server, so Codex can navigate
+# Go code semantically (definitions/references/hover/diagnostics) instead
+# of relying on grep. Both binaries are `go install`ed into
+# /home/claude/.local/bin in the Containerfile. Workspace is hardcoded to
+# /workspace since that's always the mount point for the current worktree
+# (see the "cwd inside the container is always /workspace" note above).
+[mcp_servers.gopls]
+command = "mcp-language-server"
+args = ["--workspace", "/workspace", "--lsp", "gopls"]
+
 # Closest approximation of the Claude statusline's model/git/dir/context
 # line — Codex only supports picking from a fixed list of built-in items,
 # no custom script/colors/cost/duration/lines-changed.

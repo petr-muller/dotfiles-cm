@@ -92,14 +92,5 @@ Write it as a prompt addressed to the agent ("In `<org>/<repo>`, now that PR #N 
 ## After all items
 
 Follow the shared after-all-items steps in `../../CONVENTIONS.md`. Record into a
-`## Dependency followups` section (MD) / **Dependency followups** section (HTML) — each
+`## Dependency followups` section — each
 item's entry includes the module+version that unlocks it alongside the shared fields.
-
-## Rules
-
-- **One item at a time.** Never present multiple opportunities in a single message.
-- **Real call sites only.** Every opportunity must point at code *we* own that uses the affected API. No abstract "could be nice" without a call site.
-- **Read the changelog across the range**, not just endpoints — deprecations land mid-range. Cover transitive bumps we import.
-- **Be honest about necessity.** A deprecation we call is a real *must/should*; a shiny feature we'd never use is not an opportunity. A short, true list beats a padded one.
-- **Self-contained prompts.** Each must stand alone for a cold agent on the merged tree — no "see above", no reliance on this session.
-- No emoji, no filler.

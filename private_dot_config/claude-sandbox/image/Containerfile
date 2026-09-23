@@ -77,6 +77,16 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
     sh -s -- -y --default-toolchain stable --profile default
 RUN cargo install cargo-nextest --locked
 
+# gopls (Go language server) + mcp-language-server (stdio MCP bridge in
+# front of it) so Codex can do symbol-level Go navigation (definitions,
+# references, hover, diagnostics) instead of grepping. Wired into Codex via
+# the [mcp_servers.gopls] entry in codex-config.toml below.
+ENV GOBIN=/home/claude/.local/bin \
+    PATH=/home/claude/.local/bin:$PATH
+RUN mkdir -p /home/claude/.local/bin && \
+    go install golang.org/x/tools/gopls@latest && \
+    go install github.com/isaacphi/mcp-language-server@latest
+
 # Skeleton ~/.claude so per-run bind mounts (files and dirs) have a valid
 # target to land on - podman errors bind-mounting onto a path that doesn't
 # exist yet.

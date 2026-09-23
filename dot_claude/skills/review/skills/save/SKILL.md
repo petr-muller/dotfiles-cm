@@ -1,39 +1,35 @@
 ---
 name: save
-description: Save the review just performed as REVIEW.html (for humans) and REVIEW.md (for agents)
+description: Save the review just performed as REVIEW.md (for agents) and a rendered REVIEW.html (for humans)
 ---
 
 # Save the review
 
-See `../../CONVENTIONS.md` for the full `REVIEW.md`/`REVIEW.html` schema (frontmatter fields,
-severity tokens, style rules) — this skill is what *produces* the artifact that schema
-describes; the sections below cover layout specifics beyond the shared schema.
+See `../../CONVENTIONS.md` for the full `REVIEW.md` schema (frontmatter fields, body section
+order, severity tokens, style rules) — this skill is what *produces* the artifact that
+schema describes.
 
-Produce both files in the repository root with **identical content**, different encoding:
+Write `REVIEW.md` in the repository root, then generate `REVIEW.html` from it:
 
-- `REVIEW.html` — for me to open in a browser while I sit down to do the actual code review on GitHub.
-- `REVIEW.md` — for a future agent (`/review:refresh`) to consume. Compact, structured, not for human reading.
+```
+python3 <skill-base-dir>/../../scripts/render.py REVIEW.md
+```
+
+- `REVIEW.md` — the source of truth. `/review:refresh` and every other `review:*` skill
+  parses it, so follow the schema exactly.
+- `REVIEW.html` — generated; I open it in a browser while doing the actual code review on
+  GitHub. Never hand-write it.
 
 Get `head_sha` via `git rev-parse HEAD` in the worktree (checked out at the PR head).
 
-## REVIEW.html
+## Section content
 
-A single self-contained HTML file (no external CSS/JS, no network requests). Clean readable layout — sans-serif body, monospace for code, comfortable line-height, max-width on text columns.
-
-Sections, in order:
-
-1. **Header** — the metadata above plus a link to the PR on GitHub.
-2. **Verdict** — one-line bottom line (approve / request changes / needs discussion) and a one-paragraph rationale.
-3. **What this PR does** — 3-5 bullets, my-words summary (not a copy of the PR description).
-4. **Findings** — grouped by severity: **Blocking**, **Should fix**, **Nits**, **Questions**. Each finding has a short title, `file:line-range` styled as code, the relevant excerpt (inline `<span>` styling is fine for highlighting, don't pull in a library), and 1-3 sentences explaining the concern.
-5. **Things I checked and was fine with** — short list, so I don't re-investigate.
-6. **Open questions for the author** — phrased as comments I might leave.
-
-## REVIEW.md
-
-Optimized for agent parsing, not for humans — findings/frontmatter/severity tokens/style
-rules all follow `../../CONVENTIONS.md` exactly, since `/review:refresh` and every other
-consumer parses against that shape.
+- **Verdict** — one-line bottom line, then a one-paragraph rationale.
+- **What this PR does** — 3-5 bullets in my words, not a copy of the PR description.
+- **Findings** — each with a short title, `where:` as `file:line-range`, the relevant
+  excerpt as a `- excerpt: |` literal block, and 1-3 sentences of `concern:`.
+- **Checked** — things I checked and was fine with, so I don't re-investigate.
+- **Open questions** — phrased as comments I might leave for the author.
 
 ## After writing
 

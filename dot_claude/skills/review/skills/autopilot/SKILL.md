@@ -13,7 +13,7 @@ Run this after `/review` + `/review:save` have produced `REVIEW.md` / `REVIEW.ht
 1. **Post** the saved findings to the PR as an actual GitHub review (once).
 2. **Watch** the PR afterwards: whenever something changes (new commits, comments, reviews), let the quiet period elapse, then do a partial re-review — resolve findings the new commits addressed, and post an approving review once the PR looks mergeable. Keep cycling until the PR is merged or closed.
 
-This is one continuous session — keep a running mental record (not written to disk beyond the artifact updates below) of which findings are open/resolved and what activity you've already processed, so you don't reprocess the same comment twice.
+Keep loop bookkeeping (backoff counter, `pending`, last head, processed comment/review ids, whether the review/approval was posted) in the on-disk state file described in `../../CONVENTIONS.md` ("Loop state lives on disk") — not in memory — so a summarized conversation doesn't reprocess the same comment twice. Open/resolved findings themselves live in `REVIEW.md`.
 
 ## Establish context (first cycle only)
 
@@ -21,7 +21,7 @@ Read `REVIEW.md` in the worktree root. Parse its frontmatter (`pr`, `title`, `he
 
 `<org>/<repo>` and `<N>` come from the frontmatter's `pr: org/repo#N`.
 
-Check whether the review was already posted (in case this session was interrupted and resumed): `gh api repos/<org>/<repo>/pulls/<N>/reviews --jq '.[] | select(.commit_id == "<head_sha>")'`. If a review at that exact `head_sha` already exists, skip straight to the **Watch** phase below.
+Check whether the review was already posted (in case this session was interrupted and resumed): `gh api --paginate repos/<org>/<repo>/pulls/<N>/reviews --jq '.[] | select(.commit_id == "<head_sha>" and .user.login == "<me>")'`, where `<me>` is `gh api user -q .login` (the identity this session posts as — in the sandbox that's the reviewer bot, not my own account). If *my* review at that exact `head_sha` already exists, skip straight to the **Watch** phase below; other people's reviews at the same SHA don't count.
 
 ## Post the review (once, if not already posted)
 
@@ -36,7 +36,7 @@ Turn the findings into a single GitHub review via `gh api repos/<org>/<repo>/pul
 
 Submit with `gh api --method POST repos/<org>/<repo>/pulls/<N>/reviews -f commit_id=<head_sha> -f event=<EVENT> -f body=<BODY> -f 'comments[]=...'` (build the JSON payload properly — use a temp file with `gh api --input -` if the comment set is large or contains special characters, rather than fighting shell quoting).
 
-Record in `REVIEW.md` (and mirror in `REVIEW.html`) that the review was posted: append a `## Autopilot log` section with a timestamped entry ("posted review as `REQUEST_CHANGES`/`COMMENT`, N inline comments").
+Record in `REVIEW.md` that the review was posted — append a `## Autopilot log` section with a timestamped entry ("posted review as `REQUEST_CHANGES`/`COMMENT`, N inline comments"), then regenerate the HTML (`python3 <skill-base-dir>/../../scripts/render.py REVIEW.md`).
 
 ## Watch phase: debounced convergence loop
 
@@ -77,15 +77,15 @@ If mergeable and you haven't already posted an approval for this exact head SHA:
 
 If not yet mergeable, don't approve — just leave the summary of what's still open for the next cycle.
 
-Update `REVIEW.md` / `REVIEW.html` after each substantive cycle (findings moved to Resolved, new findings added, `## Autopilot log` entry appended with what happened: SHA range covered, findings resolved, approval posted or not and why). Keep both files in sync, same discipline as `/review:refresh`.
+Update `REVIEW.md` after each substantive cycle (findings moved to Resolved, new findings added, `## Autopilot log` entry appended with what happened: SHA range covered, findings resolved, approval posted or not and why). Then regenerate the HTML (`python3 <skill-base-dir>/../../scripts/render.py REVIEW.md`).
 
 ## Decide the next wakeup: fibonacci backoff
 
-- **PR merged or closed** → print closing summary, `stop: true`, regardless of the counter.
+- **PR merged or closed** → print closing summary, delete the state file, `stop: true`, regardless of the counter.
 - **You just acted this cycle** (posted the initial review, resolved a finding, folded in new feedback, or posted an approval) → **reset the counter to `1`** — you want to see the fallout (a reply, new push, CI reaction) soon. Clear `pending`.
 - **Otherwise** → the counter was already updated per the debounce rules above (reset to `1` on new activity, advanced on idle/quiet-out cycles). Use it as-is.
 
-Call `ScheduleWakeup` with `delaySeconds` = counter minutes × 60, `prompt` set to the same `/loop` invocation text (typically `/review:autopilot`), and a one-sentence `reason` (e.g. "new commit pushed, waiting out quiet period" / "no activity, backing off to 8 min" / "just approved, watching for merge").
+Write the state file (counter, `pending`, last head/timestamp, handled ids, posted review/approval SHAs), then call `ScheduleWakeup` with `delaySeconds` = counter minutes × 60, `noop` per `../../CONVENTIONS.md`, `prompt` set to the same `/loop` invocation text (typically `/review:autopilot`), and a one-sentence `reason` (e.g. "new commit pushed, waiting out quiet period" / "no activity, backing off to 8 min" / "just approved, watching for merge").
 
 ## Output discipline
 

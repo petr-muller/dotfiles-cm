@@ -17,9 +17,9 @@ Determine the PR number and repo from the worktree context — see `../../CONVEN
 Fetch all review comments and reviews using `gh`:
 
 ```
-gh api repos/<org>/<repo>/pulls/<N>/reviews --jq '.[] | select(.state != "PENDING")'
-gh api repos/<org>/<repo>/pulls/<N>/comments
-gh api repos/<org>/<repo>/issues/<N>/comments
+gh api --paginate repos/<org>/<repo>/pulls/<N>/reviews --jq '.[] | select(.state != "PENDING")'
+gh api --paginate repos/<org>/<repo>/pulls/<N>/comments
+gh api --paginate repos/<org>/<repo>/issues/<N>/comments
 ```
 
 From these, extract individual feedback items. A "feedback item" is:
@@ -53,11 +53,11 @@ Format the question like this (adapt naturally, don't be robotic):
 **Suggested action:** [If worth addressing: what specifically to change. If not: why it's fine to skip.]
 ```
 
-For the assessment, actually look at the code the reviewer is commenting on. Read the relevant file and lines. Understand the reviewer's concern in context. Don't just parrot back what they said — form your own opinion on whether the feedback is correct and useful.
+For the assessment, actually look at the code the reviewer is commenting on — read the relevant files and lines for all items in one pass right after gathering feedback, then walk the items. Understand the reviewer's concern in context. Don't just parrot back what they said — form your own opinion on whether the feedback is correct and useful.
 
 ### The options
 
-Use `AskUserQuestion` with these options:
+Use `AskUserQuestion` with these options. When the suggested action is a concrete code change, put the proposed diff (a short unified-diff snippet) in the **Address it** option's `preview` field, so it can be read before deciding:
 
 - **"Address it"** — description: apply the suggested fix (or the reviewer's suggestion if yours doesn't apply). After the user picks this, make the code change immediately, then move to the next item.
 - **"Skip"** — description: leave the code as-is for this item. Move to the next item.
@@ -82,8 +82,5 @@ When all items have been walked through, print a short summary:
 
 ## Rules
 
-- **One item at a time.** Never present multiple items in a single message.
-- **Read the code** before assessing each item. Don't guess from the comment alone.
 - **Be honest** in assessments. If the reviewer is wrong, say so. If they're right, say so. Don't be diplomatic to the point of being useless.
-- **Don't batch.** Don't pre-read all files for all items upfront. Read as you go — keeps context focused.
 - If the PR has no actionable feedback, say so and stop.

@@ -23,7 +23,7 @@ covers only what's specific to it.
 
 /review:watch            → long-running loop watching MY OWN authored PR (CI + feedback), independent of REVIEW.md
 /review:depbump          → dependency-bump review (safety/freshness/exposure); optionally
-                              invokes the built-in /review for any accompanying code changes
+                              invokes /code-review for any accompanying code changes
 /review:depbump-followup → mines the dep bump's changelog for followup work, same recording
                               mechanism as /review:followup (separate "Dependency followups"
                               section) — also consumed by /review:followup-address
@@ -43,8 +43,12 @@ Skills that operate on a PR being reviewed (`refresh`, `gate`, `address`, `autop
 - **`<org>/<repo>`** — from the git remotes: prefer `upstream`, fall back to `origin`.
 - If the worktree doesn't correspond to a PR, say so and stop.
 
-`watch` differs: it runs on a branch *I* authored (a `work::claude` session), so it reads
-`gh pr view --json ... -q .` directly off the current branch instead of a `N-review` pattern.
+Every `gh api` call that lists reviews, comments, or timeline events must pass
+`--paginate` — the API returns 30 items per page, so without it busy PRs silently lose
+their older activity.
+
+`watch` differs: it runs on a branch *I* authored (a `work::claude` session), so it looks
+the PR up by head branch (`gh pr list --head <branch>`) instead of a `N-review` pattern.
 
 `followup-address` differs again: its input is a bare PR number (argument or inferred),
 and it fetches `REVIEW.md` from `origin/<N>-review` rather than reading a local worktree file
@@ -55,11 +59,37 @@ and it fetches `REVIEW.md` from `origin/<N>-review` rather than reading a local 
 Defined authoritatively by `/review:save`; every other skill that reads or writes these
 files follows this schema.
 
-**Two files, identical content, different encoding:**
-- `REVIEW.html` — for a human to read in a browser.
-- `REVIEW.md` — compact, agent-parsed. No filler, no marketing tone.
+**`REVIEW.md` is the single source of truth; `REVIEW.html` is generated from it.** Never
+hand-write or hand-edit the HTML. Any skill that writes or changes `REVIEW.md` finishes by
+regenerating the HTML, from the worktree root:
 
-**YAML frontmatter** (MD) / header block (HTML):
+```
+python3 <skill-base-dir>/../../scripts/render.py REVIEW.md    # writes REVIEW.html next to it
+```
+
+(`<skill-base-dir>` is the running skill's base directory, given when the skill loads.)
+
+The renderer builds the header (PR link, SHAs, verdict and gate badges) from the
+frontmatter and renders the body as-is, coloring `### [tag]` finding chips — so everything a
+human should see must be in the MD body. Use plain Markdown (headings, `-`/`1.` lists,
+fenced code, `- key: |` literal blocks, inline code/bold/links); no raw HTML.
+
+**Body section order** (skills that add sections insert them where noted):
+
+```
+# Review
+## Gate                 (added by /review:gate)
+## Verdict              one line + one-paragraph rationale
+## What this PR does    3-5 bullets, my words; "Since previous review" bullets appended by refresh
+## Re-review recommended (added by /review:refresh)
+## Findings             ordered blocking → should-fix → nit → question
+## Resolved
+## Checked
+## Open questions
+## Autopilot log / ## Followups / ## Dependency followups   (appended by those skills)
+```
+
+**YAML frontmatter**:
 
 ```yaml
 ---
@@ -100,7 +130,7 @@ Findings that get resolved later move to a **Resolved** section rather than bein
 (`## Autopilot log`, `## Followups`, `## Dependency followups`) — additive, never touching
 frontmatter or existing findings.
 
-**Style rules** (both files): be specific (`file:line`, quote real code, not paraphrase);
+**Style rules**: be specific (`file:line`, quote real code, not paraphrase);
 say so explicitly when uncertain; don't repeat the diff verbatim, point at where to focus;
 no emoji, no filler, no "great PR overall!".
 
@@ -115,8 +145,8 @@ executing agent has no memory of this session:
 - **Acceptance criteria** — how the agent knows it's done.
 - **Scope guard** — what's explicitly out of scope, so it doesn't sprawl.
 
-Both skills record accepted followups into `REVIEW.md`/`REVIEW.html` (when those files
-exist) under their own section — never fabricate the files if absent.
+Both skills record accepted followups into `REVIEW.md` (when it exists) under their own
+section, then re-render the HTML — never fabricate the file if absent.
 
 ## Opportunity walk-and-record loop (`followup`, `depbump-followup`)
 
@@ -132,7 +162,9 @@ suggested labels fits), where (`file:line`/area/call-sites), necessity (`must` /
 opinion on each — never echo the source blind. Drop anything that's actually a blocker
 (point at `/review:gate` instead) rather than smuggling it in as followup.
 
-**Walk one at a time** — never batch. `AskUserQuestion` per candidate with three options:
+**Walk one at a time** — never batch. `AskUserQuestion` per candidate with three options,
+putting the draft handoff prompt (or the proposed scope, for long ones) in the **Accept**
+option's `preview` field so it can be read side by side with the decision:
 - **Accept** — collect it as a to-be-written handoff prompt (see `../../CONVENTIONS.md`'s
   handoff-prompt format), then move straight to the next item.
 - **Skip** — drop it, move straight to the next item.
@@ -149,9 +181,8 @@ Never ask "continue?" between items.
    (`## Followups` / `## Dependency followups`) recording every accepted item — not
    optional, written every run the file is present. Never touch frontmatter or existing
    findings; never create `REVIEW.md` if it's absent.
-4. **Whenever `REVIEW.html` exists**, mirror the same into the matching HTML section, styled
-   with the file's existing CSS (read it, reuse its classes), each handoff prompt in a
-   `<pre>` block. Keep it in sync with the MD section. Never create `REVIEW.html` if absent.
+4. If step 3 wrote `REVIEW.md`, regenerate `REVIEW.html` with `render.py` (see the artifact
+   schema above). Each handoff prompt goes in a fenced code block so it renders as `<pre>`.
 
 Never commit, and never start doing the work itself — identify and hand off only.
 
@@ -165,8 +196,47 @@ share a **Fibonacci backoff** in minutes: `1, 1, 2, 3, 5, 8, 13, 21, 34`, capped
 - Nothing happened this cycle → advance to the next step.
 - PR merged/closed → `stop: true`, unconditionally.
 
-Each cycle keeps a running in-session (not on-disk) memory of what's already been
-processed, so the same comment/commit isn't re-handled twice.
+Each loop fires `ScheduleWakeup` with `noop: true` on cycles where nothing happened (no new
+activity, no action taken) and `noop: false` otherwise, so idle stretches collapse in the
+terminal instead of scrolling.
+
+### Loop state lives on disk
+
+These loops run for hours or days, and the conversation will be summarized along the way —
+anything kept only "in mind" can be lost, which leads to double replies or re-processed
+comments. So the loop's bookkeeping lives in a JSON file inside the worktree's git dir
+(never committed, never pushed, per-worktree):
+
+```
+STATE=$(git rev-parse --git-path review-loop-<skill>.json)   # <skill> = watch | autopilot
+```
+
+Shape (add fields a skill needs; keep it small):
+
+```json
+{
+  "pr": "org/repo#N",
+  "last_head": "<sha>",
+  "last_activity_at": "<ISO 8601 UTC, Z>",
+  "counter": 1,
+  "pending": false,
+  "handled": {
+    "comments": {"<id>": "addressed|pushed-back|deferred|answered|skipped"},
+    "reviews": {"<id>": "..."},
+    "checks": {"<name>@<sha>": "fixed|flake|pending"}
+  },
+  "posted": {"review_at_sha": "<sha or null>", "approval_at_sha": "<sha or null>"}
+}
+```
+
+- **Read it at the start of every cycle**; if absent, this is the first cycle — create it.
+- **Write it at the end of every cycle**, after acting and before `ScheduleWakeup`.
+- An item is new if its id isn't in `handled`, or it changed since (a new reply in the
+  thread, a new push touching it) — then re-examine it and overwrite its entry.
+- Before any outward action (reply, resolve, post review, approve), also check GitHub itself
+  where cheap (e.g. "is my reply already in this thread?") — the state file can lag if a
+  cycle crashed mid-way, so it's idempotency help, not the source of truth.
+- Loop ends (PR merged/closed) → delete the file.
 
 ### Debounced convergence (`autopilot` only)
 

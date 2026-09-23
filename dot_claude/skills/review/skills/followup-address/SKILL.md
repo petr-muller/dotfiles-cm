@@ -2,6 +2,7 @@
 name: followup-address
 description: Address the followups recorded by /review:followup and /review:depbump-followup for a PR — fetch its REVIEW.md, read the Followups and Dependency followups sections, and carry out each handoff prompt in this fresh worktree
 argument-hint: [PR-number]
+disable-model-invocation: true
 ---
 
 # Address recorded followups
@@ -19,7 +20,7 @@ The input is a **PR number**. The followups were already vetted by the user when
 
 ## Fetch the PR's REVIEW.md
 
-`/review:review`'s `pr::review::push` publishes each review worktree as the branch `N-review` on `origin` (my fork), with `REVIEW.md` committed at its root. That is the source of truth here — **do not** go hunting through sibling worktrees or the canonical working copy.
+`pr::review::push` publishes each review worktree as the branch `N-review` on `origin` (my fork), with `REVIEW.md` committed at its root. That is the source of truth here — **do not** go hunting through sibling worktrees or the canonical working copy.
 
 ```
 git fetch origin <N>-review
@@ -39,14 +40,26 @@ Present the list back to the user first — one line per followup (`[N/total] {n
 
 ## Address each followup
 
-Work through the followups in order (most necessary first, as recorded). For each one:
+Work through the followups in order (most necessary first, as recorded), **one subagent per
+followup, one at a time** — never in parallel, since they share this worktree. Each handoff
+prompt was written for a cold agent, so give it exactly that: a fresh `Agent` (general-purpose)
+whose prompt is the handoff prompt verbatim, plus this preamble:
 
-1. **Follow its handoff prompt as written** — it carries its own task, acceptance criteria, and scope guard. Treat the acceptance criteria as the definition of done and the scope guard as a hard boundary; don't let one followup sprawl into another's territory or into unrelated cleanup.
-2. **Read before you change.** Read the named files and the code around them in *this* worktree before editing — the tree is the merged default branch, which may have moved since the PR, so confirm the prompt's assumptions still hold. If a followup is already satisfied (someone got there first) or no longer applies, skip it and note why rather than forcing a no-op change.
-3. **Make the change**, then verify against the prompt's acceptance criteria where you can do so cheaply (build, run the relevant tests, re-grep for the removed TODO, etc.).
-4. Briefly confirm what was done (one line), then move straight to the next followup — don't ask "continue?".
+> You are working in `<absolute worktree path>`, a checkout of `<org>/<repo>` on the merged
+> default branch; stay inside it. The tree may have moved since this followup was written:
+> read the named files first and confirm the prompt's assumptions still hold. If the work is
+> already done or no longer applies, change nothing and say why. Treat the acceptance
+> criteria as the definition of done and the scope guard as a hard boundary. Verify the
+> acceptance criteria where it's cheap (build, relevant tests, re-grep). Do not commit. If
+> the prompt is genuinely ambiguous or risky in a way it doesn't resolve, change nothing and
+> report the question instead of guessing. End with: status (done / skipped / blocked),
+> files changed, acceptance criteria verified or not, and any open question.
 
-If a followup turns out to be genuinely ambiguous or risky in a way the prompt doesn't resolve, pause and raise it with `AskUserQuestion` rather than guessing — but prefer to just do the well-specified ones.
+Wait for each subagent before starting the next. Between them, check `git status --short`
+to attribute changed files to the followup that made them. If one comes back blocked on a
+question, raise it with `AskUserQuestion`; on an answer, re-run that followup's subagent
+with the answer appended, otherwise record it as skipped. Don't ask "continue?" between
+followups.
 
 ## After all followups
 
@@ -54,12 +67,3 @@ If a followup turns out to be genuinely ambiguous or risky in a way the prompt d
 2. List the files modified, grouped by followup.
 3. Note any acceptance criteria you couldn't verify and why.
 4. **Do not commit** — the user decides when and how to commit (followups may warrant separate commits).
-
-## Rules
-
-- **Execute, don't re-judge.** These followups were accepted in `/review:followup` or `/review:depbump-followup`. Address them; don't relitigate whether they're worth doing. Only skip one if it's already done or genuinely no longer applies — and say which.
-- **The handoff prompt is the spec.** Honor each prompt's acceptance criteria and scope guard. No scope creep across followups or into unrelated tidying.
-- **Read the code first**, in this worktree, before changing it — the merged tree may differ from when the followup was written.
-- **Stay in the worktree.** Source `REVIEW.md` only from `origin/<N>-review`; never read sibling worktrees or the canonical copy.
-- **Don't commit.** Stop at a clean working tree of changes plus a summary.
-- No emoji, no filler.

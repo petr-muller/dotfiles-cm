@@ -62,11 +62,24 @@ Compute the **age** of the release relative to today and report it. Guideline (n
 - **< ~2 weeks old** → note the age and let me judge.
 - **older** → fine on the freshness axis; say so in one line.
 
+**Known vulnerabilities** — query OSV for both the old and the new version (one POST per
+version; works for every ecosystem — `Go`, `npm`, `PyPI`, `crates.io`):
+
+```
+curl -s https://api.osv.dev/v1/query -d '{"package":{"name":"<module>","ecosystem":"Go"},"version":"<version>"}' | jq '[.vulns[]? | {id, summary, aliases}]'
+```
+
+Advisories fixed between old and new are the strongest argument *for* the bump; any
+advisory still open at the new version is a finding. For Go, if `govulncheck` is available
+(`command -v govulncheck`), run `govulncheck ./...` at the PR head — it reports only
+vulnerabilities in code we actually call, which feeds straight into the exposure judgment
+in step 3.
+
 Also note if the new version is a **pseudo-version** (`v0.0.0-<date>-<hash>`, i.e. an untagged commit) rather than a real tagged release — that's a weaker provenance signal worth calling out. The date is embedded in the pseudo-version.
 
 ### 2. What the dependency is, and whether we use it directly
 
-- **Direct or indirect** — from the `// indirect` marker in `go.mod` (or the equivalent). An indirect dep we don't import ourselves is lower-stakes; a direct dep in core code is higher.
+- **Direct or indirect** — from the `// indirect` marker in `go.mod` (or the equivalent). An indirect dep we don't import ourselves is lower-stakes; a direct dep in core code is higher. For Go, `go mod why -m <module>` shows the shortest import chain from our packages (or says it isn't needed by the main module), which says more than the marker alone.
 - **Import surface in our code** — grep the project (excluding `vendor/`) for the module's import path:
   `grep -rn --include='*.go' '"<module-path>' . | grep -v '/vendor/'`
   Count the importing files/packages and list where they sit. Is it imported in one util, or threaded through core packages? Test-only?
@@ -91,7 +104,7 @@ Then **combine changelog × usage** into an exposure judgment for *our* project:
 
 ## Standard code review (dep + code only)
 
-If the PR also changes project code, review those changes the normal way: invoke the built-in **`review`** skill (`/review`) via the Skill tool, scoped to the **project-code** changes — treat the manifest/lockfile/vendored churn as the dependency context (already covered above), not as code to line-review. Fold its findings into the output below under their own heading; don't let vendored noise drown the real review.
+If the PR also changes project code, review those changes the normal way: invoke the **`code-review`** skill via the Skill tool (`/review` is a user-typed command, not a Skill-invocable skill), scoped to the **project-code** changes — treat the manifest/lockfile/vendored churn as the dependency context (already covered above), not as code to line-review. Fold its findings into the output below under their own heading; don't let vendored noise drown the real review.
 
 For dep-only PRs, skip this entirely — there is no project code to review.
 
@@ -106,6 +119,7 @@ last thing:
 - **Per dependency:**
   - **Freshness** — new-release age and date; flag if too fresh / pseudo-version, otherwise "fine".
   - **Usage** — direct/indirect, what it does, import surface (counts + where), sensitive or not.
+  - **Vulnerabilities** — OSV advisories fixed by the bump, any still open at the new version, and `govulncheck` reachability if run.
   - **Changelog & exposure** — the substantive changes, any CVE/security fix, and the exposure verdict (heavy/light, sensitive/not) tied to how we use it.
   - **Take** — one line: safe to bump now / wait for soak / look closer at X.
 - **Code review** (dep + code only) — the standard-review findings by severity, under their own heading.
