@@ -183,6 +183,10 @@ Codex's own paths (mounted at runtime, same as Claude's):
 - `image/codex-config.toml` (baked in) sets `sandbox_mode = "workspace-write"`
   and `approval_policy = "on-request"` — Codex's closest match to Claude
   Code's own default interactive permission behavior in this sandbox.
+- AI Hero skills (`mattpocock/skills`) are baked into the image at
+  `/opt/mattpocock-skills` and refreshed on every image rebuild. Claude loads
+  them via `--plugin-dir` (as `mattpocock-skills:<name>`); Codex gets the
+  plugin's skill list copied flat into `/etc/codex/skills`.
 
 Not reused: `.claude/commands`, `.claude/plugins`, and `enabledPlugins` in
 `image/settings.json` (Claude-specific formats with no Codex equivalent).

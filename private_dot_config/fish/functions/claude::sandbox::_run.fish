@@ -135,5 +135,7 @@ function claude::sandbox::_run --description "Run the claude-review-sandbox imag
     # entrypoint.sh execs whatever command follows the image name (it no
     # longer hardcodes a binary — codex::sandbox::_run shares the same image
     # and passes `codex` instead), so `claude` must be named explicitly here.
-    podman run $podman_args claude-review-sandbox:latest claude $args
+    # --plugin-dir loads the AI Hero skills baked into the image (see
+    # Containerfile) without touching the read-only-mounted ~/.claude/plugins.
+    podman run $podman_args claude-review-sandbox:latest claude --plugin-dir /opt/mattpocock-skills $args
 end

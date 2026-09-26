@@ -47,6 +47,22 @@ RUN curl -sSL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_
         -o /usr/local/bin/yq \
     && chmod +x /usr/local/bin/yq
 
+# AI Hero skills (https://www.aihero.dev/skills, mattpocock/skills). Baked
+# into the image rather than installed on the host: the image is rebuilt
+# --no-cache on every chezmoi apply, so this tracks upstream HEAD the same
+# way the npm installs above do, and the host's ~/.claude/{plugins,skills}
+# stay untouched (both are bind-mounted read-only over the in-image paths,
+# so nothing baked there would be visible anyway).
+# - Claude: loaded as a plugin via `claude --plugin-dir /opt/mattpocock-skills`
+#   (claude::sandbox::_run), skills namespaced `mattpocock-skills:<name>`.
+# - Codex: /etc/codex/skills is Codex's admin-scope skill dir; populated
+#   flat with exactly the skills the upstream plugin.json ships (skips the
+#   repo's in-progress/ and misc/ drafts).
+RUN git clone --depth 1 https://github.com/mattpocock/skills /opt/mattpocock-skills \
+    && mkdir -p /etc/codex/skills \
+    && jq -r '.skills[]' /opt/mattpocock-skills/.claude-plugin/plugin.json \
+        | while read -r s; do cp -r "/opt/mattpocock-skills/$s" /etc/codex/skills/; done
+
 # Rootless bind mounts can present /workspace with an ownership git doesn't
 # recognize as "mine" by default. This container is a throwaway sandbox
 # scoped to a single worktree mount, so a blanket safe.directory is fine.
