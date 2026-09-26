@@ -12,7 +12,7 @@ function pr::_private_content --description "Clone/update private claude-content
 
     # Overlay paths (relative to worktree root) that should always be excluded
     # from git, whether or not the corresponding symlink ends up being created.
-    set -l overlay_paths $dir .claude/commands/muller CLAUDE.local.md NOTES
+    set -l overlay_paths $dir .claude/commands/muller CLAUDE.local.md NOTES .scratch
 
     for path in $overlay_paths
         if not grep -qxF -- $path $exclude_file 2>/dev/null
@@ -40,6 +40,17 @@ function pr::_private_content --description "Clone/update private claude-content
 
     pr::_private_content::link $worktree $dir .claude/commands/muller
     pr::_private_content::link $worktree $dir CLAUDE.md CLAUDE.local.md
+
+    # Shared scratch space (e.g. mirrored upstream issues under
+    # .scratch/upstream/) lives in the overlay so it survives worktree
+    # deletion. Ensure it exists so the symlink is never dangling; never
+    # clobber a real .scratch directory already in the worktree.
+    if test -d $worktree/.scratch; and not test -L $worktree/.scratch
+        echo "Warning: $worktree/.scratch is a real directory, not linking it to $dir/.scratch" >&2
+    else
+        mkdir -p $worktree/$dir/.scratch
+        and pr::_private_content::link $worktree $dir .scratch
+    end
 
     # Discover skills carried by this branch and symlink each individually under
     # a `muller-` prefix to avoid collisions with the repo's own .claude/skills/.
@@ -131,7 +142,12 @@ function pr::_private_content::link --description "Symlink an overlay path from 
     # Compute a relative target so the symlink survives worktree moves.
     # The symlink itself counts as one component; the rest are directories to climb.
     set -l ups (math (string split / $link_rel | count) - 1)
-    set -l up (string repeat -n $ups ../)
+    # `string repeat -n 0` prints nothing, which would make $up an empty list
+    # and collapse $target to nothing (fish cartesian expansion), so default it.
+    set -l up ''
+    if test $ups -gt 0
+        set up (string repeat -n $ups ../)
+    end
     set -l target $up$overlay_root/$source_rel
 
     ln -sfn $target $link
