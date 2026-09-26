@@ -22,4 +22,14 @@ function pr::review::push --description "Commit REVIEW.{html,md} and push the re
     end
 
     pr::_push_review_artifacts $toplevel $org $repo $branch "Review of PR $pr_number" REVIEW.html REVIEW.md
+    set -l push_status $status
+
+    # Also publish the private overlay, so notes made during the session aren't
+    # lost to the next init/pull's reset --hard.
+    if test -d $toplevel/.private-claude-content
+        echo "Pushing the private claude-content overlay..."
+        overlay::push
+        or return 1
+    end
+    return $push_status
 end

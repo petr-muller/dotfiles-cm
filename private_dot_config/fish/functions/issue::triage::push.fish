@@ -22,4 +22,14 @@ function issue::triage::push --description "Commit TRIAGE.{html,md} and push the
     end
 
     pr::_push_review_artifacts $toplevel $org $repo $branch "Triage of issue $issue_number" TRIAGE.html TRIAGE.md
+    set -l push_status $status
+
+    # Also publish the private overlay, so notes made during the session aren't
+    # lost to the next init/pull's reset --hard.
+    if test -d $toplevel/.private-claude-content
+        echo "Pushing the private claude-content overlay..."
+        overlay::push
+        or return 1
+    end
+    return $push_status
 end

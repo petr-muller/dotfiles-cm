@@ -40,4 +40,14 @@ gh repo fork $org/$repo
 git push https://github.com/petr-muller-author/$repo.git HEAD:$branch --force"
 
     claude::sandbox::_exec author $toplevel $script
+    set -l push_status $status
+
+    # Also publish the private overlay, so notes made during the session aren't
+    # lost to the next init/pull's reset --hard.
+    if test -d $toplevel/.private-claude-content
+        echo "Pushing the private claude-content overlay..."
+        overlay::push
+        or return 1
+    end
+    return $push_status
 end
