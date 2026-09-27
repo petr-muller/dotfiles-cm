@@ -28,7 +28,7 @@ git show FETCH_HEAD:REVIEW.md
 ```
 
 - If the branch doesn't exist on `origin` (fetch fails), there's no published review for this PR — say so and stop.
-- If `REVIEW.md` isn't present on that branch, or it has **neither a `## Followups` nor a `## Dependency followups` section** (or both are empty), there are no recorded followups to address — say so and stop. This command never re-derives followups; that's `/review:followup`'s and `/review:depbump-followup`'s job.
+- If `REVIEW.md` isn't present on that branch, or it has **neither a `## Followups` nor a `## Dependency followups` section** (or both are empty, or hold only a note that no opportunities were identified), there are no recorded followups to address — say so and stop. This command never re-derives followups; that's `/review:followup`'s and `/review:depbump-followup`'s job.
 
 Read the whole `REVIEW.md` for context (the findings and frontmatter explain *why* each followup exists), but the **`## Followups` and `## Dependency followups` sections are what you act on** — read whichever are present; either may be absent.
 

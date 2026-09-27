@@ -61,7 +61,15 @@ says** (quote the deprecation note / release line). Otherwise follow the shared 
 shape in `../../CONVENTIONS.md` — necessity guidance in particular: a deprecation we call is
 a real *must/should*, a shiny feature we'd never use is not an opportunity.
 
-Drop non-opportunities: anything that's actually a *bug* the bump introduces (that belongs in `/review:depbump`, possibly blocking), and abstract niceties with no call site of ours. Order most necessary / most valuable first. If there are no real opportunities, say so and stop.
+Drop non-opportunities: anything that's actually a *bug* the bump introduces (that belongs in `/review:depbump`, possibly blocking), and abstract niceties with no call site of ours. Order most necessary / most valuable first.
+
+If there are no real opportunities, say so — but still record that outcome before stopping, so
+a later reader of the artifacts doesn't mistake "never ran" for "found nothing". **Whenever
+`REVIEW.md` exists**, append (or replace, on re-runs) the `## Dependency followups` section
+with a short note that no opportunities were identified, listing the modules and version
+ranges examined and a one-line reason (e.g. "changelog only touches APIs we don't call").
+Record no items and no handoff prompts. Then regenerate `REVIEW.html` with `render.py` as in
+the shared after-all-items steps, and stop.
 
 ## Walk one at a time
 
