@@ -51,8 +51,9 @@ their older activity.
 the PR up by head branch (`gh pr list --head <branch>`) instead of a `N-review` pattern.
 
 `followup-address` differs again: its input is a bare PR number (argument or inferred),
-and it fetches `REVIEW.md` from `origin/<N>-review` rather than reading a local worktree file
-— see that skill for specifics.
+and it fetches `REVIEW.md` from the published `<N>-review` branch (the reviewer account's fork
+for public repos, `origin` for private ones) rather than reading a local worktree file — see
+that skill for specifics.
 
 ## `REVIEW.md` / `REVIEW.html` artifact schema
 

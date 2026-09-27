@@ -16,18 +16,27 @@ The input is a **PR number**. The followups were already vetted by the user when
 ## Establish context
 
 1. **PR number** — take it from the command argument (`$ARGUMENTS`). If none was given, try to infer `N` from the checked-out branch name (e.g. a leading number, or a `N-followup`-style prefix). If you can't determine a PR number, say so and stop.
-2. **`<org>/<repo>`** — from the git remotes (prefer `upstream`, fall back to `origin`). The REVIEW.md branch itself lives on `origin` (see below).
+2. **`<org>/<repo>`** — from the git remotes (prefer `upstream`, fall back to `origin`). Where the REVIEW.md branch lives depends on the repo's visibility (see below).
 
 ## Fetch the PR's REVIEW.md
 
-`pr::review::push` publishes each review worktree as the branch `N-review` on `origin` (my fork), with `REVIEW.md` committed at its root. That is the source of truth here — **do not** go hunting through sibling worktrees or the canonical working copy.
+`pr::review::push` publishes each review worktree as the branch `N-review`, with `REVIEW.md` committed at its root — but **where** depends on the repo's visibility (mirroring `pr::_push_review_artifacts` / `pr::_replay_artifacts`):
+
+- **Public repo** → the reviewer account's fork, `petr-muller-reviewer/<repo>`. This is the normal case.
+- **Private repo** (or visibility can't be determined) → `origin` (my own fork).
+
+That branch is the source of truth here — **do not** go hunting through sibling worktrees or the canonical working copy, and don't fall back from one location to the other (a stale `N-review` on `origin` may predate the reviewer-fork switch).
 
 ```
-git fetch origin <N>-review
+if [ "$(gh api repos/<org>/<repo> --jq .private)" = false ]; then
+  git fetch https://github.com/petr-muller-reviewer/<repo>.git <N>-review   # anonymous HTTPS read is enough
+else
+  git fetch origin <N>-review
+fi
 git show FETCH_HEAD:REVIEW.md
 ```
 
-- If the branch doesn't exist on `origin` (fetch fails), there's no published review for this PR — say so and stop.
+- If the fetch fails, there's no published review for this PR at that location — say so (naming the location you checked) and stop.
 - If `REVIEW.md` isn't present on that branch, or it has **neither a `## Followups` nor a `## Dependency followups` section** (or both are empty, or hold only a note that no opportunities were identified), there are no recorded followups to address — say so and stop. This command never re-derives followups; that's `/review:followup`'s and `/review:depbump-followup`'s job.
 
 Read the whole `REVIEW.md` for context (the findings and frontmatter explain *why* each followup exists), but the **`## Followups` and `## Dependency followups` sections are what you act on** — read whichever are present; either may be absent.
