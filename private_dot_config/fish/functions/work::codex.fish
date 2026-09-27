@@ -1,4 +1,10 @@
 function work::codex --description "Launch codex inside a work worktree (RH identity only)"
+    argparse --ignore-unknown 'M/model=' -- $argv
+    or return 1
+
+    set -q _flag_model
+    or set -l _flag_model gpt-6-sol
+
     set -l toplevel (git rev-parse --show-toplevel 2>/dev/null)
     if test -z "$toplevel"
         echo "Not in a git repository" >&2
@@ -24,5 +30,5 @@ function work::codex --description "Launch codex inside a work worktree (RH iden
         return
     end
 
-    codex_redhat_authoring_sandboxed $argv
+    codex_redhat_authoring_sandboxed --model $_flag_model $argv
 end

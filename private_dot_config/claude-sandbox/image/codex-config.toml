@@ -10,6 +10,14 @@ approval_policy = "never"
 # (Sol). GPT-6 has no Terra tier; gpt-5.6-terra gets auto-upgraded to Sol.
 model = "gpt-6-luna"
 
+# Codex offers a "new model" migration (Terra -> GPT-6 Luna) on startup and
+# records the answer here — but the container is --rm, so the answer never
+# persisted and the prompt returned every session. Pre-acknowledge it
+# (old -> new slug, Codex's own format) to keep Terra without the nag.
+# GPT-6 Luna benchmarks worse than Terra, so we deliberately stay put.
+[notice.model_migrations]
+"gpt-5.6-terra" = "gpt-6-luna"
+
 # Restrict to API-key auth (the only kind this sandbox provides): "apikey" /
 # preferred_auth_method aren't real config keys (verified against upstream
 # source — codex-rs/protocol/src/config_types.rs), the real one is

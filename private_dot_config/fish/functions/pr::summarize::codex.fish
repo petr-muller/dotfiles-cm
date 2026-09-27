@@ -3,7 +3,7 @@ function pr::summarize::codex --description "Launch codex inside a PR summarize 
     or return 1
 
     set -q _flag_model
-    or set -l _flag_model gpt-5.6-luna
+    or set -l _flag_model gpt-6-luna
 
     set -l toplevel (git rev-parse --show-toplevel 2>/dev/null)
     if test -z "$toplevel"
