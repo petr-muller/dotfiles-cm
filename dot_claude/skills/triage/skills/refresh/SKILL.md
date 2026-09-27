@@ -24,9 +24,9 @@ If `TRIAGE.md` doesn't exist, tell the user there's nothing to refresh and stop.
 
 Use `gh` (read-only) to collect, in parallel where possible:
 
-1. **Current issue state** — `gh issue view <N> --repo <org>/<repo> --json state,title,labels,closedAt -q .`. Compare `state` and `labels` against frontmatter. Note if it transitioned open↔closed.
+1. **Current issue state** — `gh issue view <N> --repo <org>/<repo> --json state,stateReason,title,labels,closedAt,closedByPullRequestsReferences -q .`. Compare `state` and `labels` against frontmatter. Note if it transitioned open↔closed, and for a close, the `stateReason` (`COMPLETED`, `NOT_PLANNED`, `DUPLICATE`) and any closing PRs.
 2. **New comments since `triaged_at`** — `gh api --paginate repos/<org>/<repo>/issues/<N>/comments --jq '.[] | select(.created_at > "<triaged_at>")'`. Extract author, timestamp, body.
-3. **Linked PRs / cross-references** — `gh api --paginate repos/<org>/<repo>/issues/<N>/timeline --jq '.[] | select(.created_at > "<triaged_at>") | select(.event == "cross-referenced" or .event == "connected" or .event == "referenced")'` (the timeline endpoint, not `/events` — cross-references only appear in the timeline). List any new PR references.
+3. **Linked PRs / cross-references** — `gh api --paginate repos/<org>/<repo>/issues/<N>/timeline --jq '.[] | select(.created_at > "<triaged_at>") | select(.event == "cross-referenced" or .event == "connected" or .event == "referenced")'` (the timeline endpoint, not `/events` — cross-references only appear in the timeline). List any new PR references. For each referenced PR (and each closing PR from step 1), `gh pr view <M> --repo <org>/<repo> --json state,mergedAt,title,body,files -q .` — a linked PR that is still **open** is a fix in flight; a **merged** one is a (claimed) resolution.
 4. **Optional — main branch movement** — `git fetch <upstream-or-origin>` then `git log --oneline OLD_MAIN_SHA..<remote>/<default-branch>` to note if upstream has advanced since triage. Useful when the triage referenced code that may have changed.
 
 If state is unchanged, labels unchanged, no new comments, no new cross-references → say "no activity since `<triaged_at>`" and stop.
@@ -34,12 +34,26 @@ If state is unchanged, labels unchanged, no new comments, no new cross-reference
 ## Decide: update or recommend re-triage
 
 Lean toward "update in place" unless changes are substantial. Recommend a full re-triage *only* when:
-- Issue state changed (closed → reopened or vice versa) and the new state changes the recommended next steps, OR
+- The issue was **reopened** after being closed, OR
+- The issue was closed by a merged PR (or as completed) and the **resolution check** below finds the fix insufficient, OR
 - The author or maintainer added substantial new information that materially changes the analysis (e.g. new repro steps that contradict the previous reproducibility finding, a new error in a different subsystem), OR
-- Scope changed: comments reveal the issue is actually about something different than originally triaged, OR
-- A linked PR exists that now resolves the issue (verdict should change to reflect that).
+- Scope changed: comments reveal the issue is actually about something different than originally triaged.
 
 Minor — label tweaks, "+1" comments, the author providing requested info that confirms the existing triage, small clarifications → **update in place**, don't recommend re-triage.
+
+A linked PR that is still **open** is not a trigger: update in place, noting the PR under "Since previous triage:" and in `## Next steps` (e.g. "review/track #M"), with one line on whether its approach matches the triage's findings and recommended next step.
+
+An issue closed **without** a fix (`NOT_PLANNED`, `DUPLICATE`) is not a trigger either: update in place, recording the close reason and, for duplicates, the canonical issue.
+
+### Resolution check
+
+When the issue was closed by a merged PR, or a merged PR claims to fix it, re-triaging the original problem is pointless — the question is only whether the fix is *sufficient*. Read the PR (description, changed files, and `gh pr diff <M> --repo <org>/<repo>` for the relevant parts) against the triage's `## What the issue reports` and `cause`/`reproducibility` findings, plus any comments after the merge, and classify:
+
+- **sufficient** — the PR addresses the reported problem at the cause the triage identified (or a convincingly argued different one), and nothing after the merge says otherwise. → update in place: `verdict: resolved`, add a `## Resolution` section.
+- **partial** — the PR addresses only some reported symptoms/cases, a workaround rather than the cause, or comments say the problem persists. → recommend re-triage; the reason names what remains unaddressed.
+- **unrelated / unclear** — the PR doesn't visibly touch the reported problem (e.g. auto-closed by a loose `Fixes` keyword). → recommend re-triage with that as the reason.
+
+The `## Resolution` section: resolving PR(s) and merge date, the classification with 1-3 bullets of evidence (files/functions changed vs. the triaged cause), and whether it matches the previously recommended next step.
 
 ## When updating in place
 
@@ -53,7 +67,7 @@ Edit `TRIAGE.md`; the HTML is regenerated at the end.
    - Add (or extend) a `refresh_log:` list entry recording the previous timestamp and a one-line summary of what was incorporated.
 2. Update findings: append new ones surfaced by comments / events. If a previous finding was resolved by an answer in a comment, move it to `## Resolved` (don't delete — history matters).
 3. In `## What the issue reports`, append a short "Since previous triage:" paragraph with 1-3 bullets.
-4. Update `## Next steps` if the actions shifted.
+4. Update `## Next steps` if the actions shifted (for a sufficient resolution: typically none, or post-merge verification).
 5. Save, then regenerate the HTML: `python3 <skill-base-dir>/../../scripts/render.py TRIAGE.md`.
 
 Keep the MD structure consistent with `/triage:save` output — `/triage:refresh` may run again later against its own output.

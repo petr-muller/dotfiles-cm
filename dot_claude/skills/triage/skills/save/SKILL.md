@@ -41,7 +41,7 @@ verdict: accepted
 - `main_sha` — `git rev-parse HEAD` (the `<N>-triage` branch is reset to the upstream default branch).
 - `triaged_at` — UTC with a literal `Z` suffix (`date -u -Iseconds | sed 's/+00:00/Z/'`), so it
   compares lexicographically against GitHub's `created_at`/`submitted_at`.
-- `verdict` — one of `needs-info`, `accepted`, `duplicate`, `not-a-bug`, `wontfix`, `needs-discussion`.
+- `verdict` — one of `needs-info`, `accepted`, `duplicate`, `not-a-bug`, `wontfix`, `needs-discussion`. `/triage:refresh` may later set `resolved`.
 
 Later skills may add `refresh_log:`, `recommended_retriage:`, and `advice:` blocks.
 
@@ -50,6 +50,7 @@ Later skills may add `refresh_log:`, `recommended_retriage:`, and `advice:` bloc
 ```
 # Triage
 ## Verdict                  one line + one-paragraph rationale
+## Resolution               (added by /triage:refresh when a merged PR sufficiently resolves the issue)
 ## What the issue reports   3-5 bullets in my words, not a copy of the issue body
 ## Re-triage recommended    (added by /triage:refresh)
 ## Findings                 tagged entries, see below
