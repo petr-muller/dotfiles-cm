@@ -97,11 +97,14 @@ RUN cargo install cargo-nextest --locked
 # front of it) so Codex can do symbol-level Go navigation (definitions,
 # references, hover, diagnostics) instead of grepping. Wired into Codex via
 # the [mcp_servers.gopls] entry in codex-config.toml below.
+# govulncheck: reachability-aware Go vuln scan, used by the review:depbump
+# skill to tell which advisories a bump fixes/introduces in code we call.
 ENV GOBIN=/home/claude/.local/bin \
     PATH=/home/claude/.local/bin:$PATH
 RUN mkdir -p /home/claude/.local/bin && \
     go install golang.org/x/tools/gopls@latest && \
-    go install github.com/isaacphi/mcp-language-server@latest
+    go install github.com/isaacphi/mcp-language-server@latest && \
+    go install golang.org/x/vuln/cmd/govulncheck@latest
 
 # Skeleton ~/.claude so per-run bind mounts (files and dirs) have a valid
 # target to land on - podman errors bind-mounting onto a path that doesn't

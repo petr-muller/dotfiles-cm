@@ -70,10 +70,31 @@ curl -s https://api.osv.dev/v1/query -d '{"package":{"name":"<module>","ecosyste
 ```
 
 Advisories fixed between old and new are the strongest argument *for* the bump; any
-advisory still open at the new version is a finding. For Go, if `govulncheck` is available
-(`command -v govulncheck`), run `govulncheck ./...` at the PR head — it reports only
-vulnerabilities in code we actually call, which feeds straight into the exposure judgment
-in step 3.
+advisory still open at the new version is a finding.
+
+**Reachability (Go)** — OSV says an advisory exists for the module version; `govulncheck`
+says whether our code actually calls the affected symbols, which feeds straight into the
+exposure judgment in step 3. Run it at **both** the merge-base and the PR head and compare,
+so the report says which *reachable* vulns the bump fixes and whether it introduces any:
+
+```
+base=$(git merge-base HEAD <upstream>/<base-branch>)
+git worktree add --detach /tmp/depbump-base "$base"
+(cd /tmp/depbump-base && govulncheck -format json ./... > /tmp/govuln-base.json)
+govulncheck -format json ./... > /tmp/govuln-head.json
+git worktree remove --force /tmp/depbump-base
+```
+
+Compare the `finding` entries by OSV id. A `trace` runs from the vulnerable symbol
+(`trace[0]`) to our entry point (last frame). If `trace[0].function` is set, it's
+**called**; if only `package`/`module` are set, it's imported or required but not called,
+and weighs much less. Notes:
+- On very large repos, scope the pattern (e.g. `./cmd/... ./pkg/...`) if `./...` is too slow.
+- It must type-check the module. If it fails at head but not at base, the bump breaks the
+  build — that is a finding in itself.
+- It needs network access to `vuln.go.dev`.
+- If it can't run (not installed, build failure, no network), say so in the output with the
+  reason — never silently omit it. Non-Go ecosystems rely on OSV alone.
 
 Also note if the new version is a **pseudo-version** (`v0.0.0-<date>-<hash>`, i.e. an untagged commit) rather than a real tagged release — that's a weaker provenance signal worth calling out. The date is embedded in the pseudo-version.
 
@@ -119,7 +140,7 @@ last thing:
 - **Per dependency:**
   - **Freshness** — new-release age and date; flag if too fresh / pseudo-version, otherwise "fine".
   - **Usage** — direct/indirect, what it does, import surface (counts + where), sensitive or not.
-  - **Vulnerabilities** — OSV advisories fixed by the bump, any still open at the new version, and `govulncheck` reachability if run.
+  - **Vulnerabilities** — OSV advisories fixed by the bump, any still open at the new version, and `govulncheck` reachability at base vs. head (called vs. imported-only), or "govulncheck: not run (<reason>)".
   - **Changelog & exposure** — the substantive changes, any CVE/security fix, and the exposure verdict (heavy/light, sensitive/not) tied to how we use it.
   - **Take** — one line: safe to bump now / wait for soak / look closer at X.
 - **Code review** (dep + code only) — the standard-review findings by severity, under their own heading.
