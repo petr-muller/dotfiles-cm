@@ -6,8 +6,9 @@
 sandbox_mode = "danger-full-access"
 approval_policy = "never"
 
-# Default to Terra instead of Codex's own recommended default (Sol).
-model = "gpt-5.6-terra"
+# Default to GPT-6 Luna (cheap) instead of Codex's own recommended default
+# (Sol). GPT-6 has no Terra tier; gpt-5.6-terra gets auto-upgraded to Sol.
+model = "gpt-6-luna"
 
 # Restrict to API-key auth (the only kind this sandbox provides): "apikey" /
 # preferred_auth_method aren't real config keys (verified against upstream
