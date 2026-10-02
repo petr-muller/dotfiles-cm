@@ -160,8 +160,12 @@ template; the mechanics below are shared.
 suggested labels fits), where (`file:line`/area/call-sites), necessity (`must` / `should` /
 `could`, honestly — don't inflate a `could` into a `must`), plus whatever the skill adds
 (e.g. depbump-followup's module+version). Read the actual code/call sites before forming an
-opinion on each — never echo the source blind. Drop anything that's actually a blocker
-(point at `/review:gate` instead) rather than smuggling it in as followup.
+opinion on each — never echo the source blind. Never drop a candidate for being a
+blocker or an unresolved review finding: once the PR is merged (or about to be), findings
+that were not addressed before merge are exactly the most urgent followups — include them,
+mark them `must` or `should`, and say what was left unfixed. Only when the PR is still
+open and unmerged *and* the item is a genuine merge blocker, flag it as such (and mention
+`/review:gate`) in addition to listing it — don't silently omit it.
 
 **Walk one at a time** — never batch. `AskUserQuestion` per candidate with three options,
 putting the draft handoff prompt (or the proposed scope, for long ones) in the **Accept**

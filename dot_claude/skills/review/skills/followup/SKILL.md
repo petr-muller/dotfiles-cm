@@ -27,11 +27,12 @@ Build a picture of what just changed and the ground around it. Batch these:
 
 1. **PR diff + description** — `gh pr view <N> --repo <org>/<repo> --json title,body,files -q .` and the diff (`git diff <base>...<head>`, or `gh pr diff <N>`).
 2. **TODOs introduced by the PR** — grep the diff / changed files for `TODO`, `FIXME`, `XXX`, `HACK` added in this PR (not pre-existing ones elsewhere).
-3. **`REVIEW.md`** — open questions, unaddressed `should-fix`/`nit` findings, and questions that imply later work.
+3. **`REVIEW.md`** — open questions, and **every finding that was not addressed before merge** (blockers/`must-fix` included, plus `should-fix`/`nit`), and questions that imply later work. Cross-check each against the merged code/latest PR head to see whether it was actually fixed; whatever wasn't is a followup candidate, and the most urgent kind.
 4. **Deferred review threads** — `gh api --paginate repos/<org>/<repo>/pulls/<N>/comments` and `.../issues/<N>/comments`; look for "follow-up", "in a later PR", "out of scope (for now)", "we should later", "filed/should file an issue", "leaving as TODO". Skip bot noise.
 5. **The neighbourhood** — read the files the PR touched and the code immediately around them, not just the changed lines. The most interesting followups usually live just outside the diff.
 
 Then think like the maintainer asking the question. Don't run a checklist — let the change suggest its own opportunities. To prime that thinking (these are **examples, not a required list** — ignore any that don't fit, and reach for things not on it):
+- A review finding (of any severity, blockers included) that merged unfixed — fixing it is the top-priority followup.
 - A deferred review thread or punted suggestion that's worth picking up now.
 - New flags / config / API / CRD fields whose docs didn't land with them.
 - New code paths that nothing exercises yet.
@@ -50,7 +51,7 @@ Category here is a short label that fits (`cleanup` / `docs` / `tests` / `tech-d
 better); add **why it's followup and not part of the merge**. Otherwise follow the shared
 candidate shape in `../../CONVENTIONS.md`.
 
-Order most necessary / most valuable first. If there are no real followups, say so and stop.
+Unfixed review findings go first (blockers → `must`). Otherwise order most necessary / most valuable first. If there are no real followups, say so and stop.
 
 ## Walk one at a time
 

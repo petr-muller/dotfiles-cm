@@ -72,10 +72,18 @@ function codex::sandbox::_run --description "Run codex (OpenAI) inside the revie
 
     # See claude::sandbox::_run for the TERM/keep-id rationale — identical
     # here, same image/entrypoint.
+    # Persistent Go caches, dedicated (not the host's) so a compromised
+    # sandbox can't poison host builds. Worktree is always /workspace, so
+    # cache keys stay stable across worktrees.
+    set -l go_cache_root ~/.cache/claude-sandbox
+    mkdir -p $go_cache_root/go-build $go_cache_root/go-mod
+
     set -l podman_args \
         --rm -it --userns=keep-id:uid=1000,gid=1000 \
         $cpu_limit_args \
         -v "$worktree":/workspace:Z \
+        -v $go_cache_root/go-build:/home/claude/.cache/go-build:z \
+        -v $go_cache_root/go-mod:/home/claude/go/pkg/mod:z \
         -w /workspace \
         -v "$gitconfig_file":/home/claude/.gitconfig:ro,z \
         -v ~/.claude/skills:/home/claude/.agents/skills:ro,z \
