@@ -43,9 +43,9 @@ Read the whole `REVIEW.md` for context (the findings and frontmatter explain *wh
 
 ## Parse the followups
 
-From each present section (`## Followups`, `## Dependency followups`), extract every recorded followup: its title, category, necessity (must / should / could), where (`file:line`, area, or affected call sites), and — the operative part — its **handoff prompt** (the fenced code block). Each handoff prompt is written to stand alone for a cold agent on the merged tree; that's the instruction set. Merge both sections into one combined worklist rather than treating them as separate passes — a dependency followup is addressed exactly like any other.
+From each present section (`## Followups`, `## Dependency followups`), extract every recorded followup: its title, category, necessity (must / should / could), mode (`deliver`, or `probe` — treat a missing mode as `deliver`), where (`file:line`, area, or affected call sites), and — the operative part — its **handoff prompt** (the fenced code block). Each handoff prompt is written to stand alone for a cold agent on the merged tree; that's the instruction set. Merge both sections into one combined worklist rather than treating them as separate passes — a dependency followup is addressed exactly like any other.
 
-Present the list back to the user first — one line per followup (`[N/total] {necessity} {category}: {title}`), tagging which section each came from if both are present — so it's clear what's about to happen. Then proceed to address them all without pausing for per-item approval; they were already accepted upstream.
+Present the list back to the user first — one line per followup (`[N/total] {necessity} {category}: {title}`), tagging which section each came from if both are present — so it's clear what's about to happen. Then work through them **one at a time, pausing after each** for the user to inspect the change and give feedback (see below). The followups were already accepted upstream, so don't ask permission *before* starting an item — the pause is for reviewing the result.
 
 ## Address each followup
 
@@ -64,15 +64,37 @@ whose prompt is the handoff prompt verbatim, plus this preamble:
 > report the question instead of guessing. End with: status (done / skipped / blocked),
 > files changed, acceptance criteria verified or not, and any open question.
 
-Wait for each subagent before starting the next. Between them, check `git status --short`
-to attribute changed files to the followup that made them. If one comes back blocked on a
+For a **probe** followup (`Mode: probe`), replace the "Treat the acceptance criteria…"
+sentences of the preamble with: *"This is a probe: the tests are throwaway, written only to
+exercise the functionality and find real bugs. Delete them before finishing. Change
+implementation files only to fix a bug you have confirmed is real, and keep that fix minimal.
+If no real bug turns up, change nothing. For each bug, report the failing case (input,
+expected, actual) so it can be kept as a regression test if wanted."* Its status is `done`
+(bugs found and fixed), `done — no bugs found`, or `blocked`.
+
+Wait for each subagent before starting the next. Before each one, snapshot the tree (`GIT_INDEX_FILE=<scratchpad>/idx git add -A && GIT_INDEX_FILE=<scratchpad>/idx git write-tree`) and again after, so that item's changes are exactly `git diff-tree -p <before> <after>` (this also attributes changed files to it, and lets the item be undone with `git apply -R` without touching earlier items). If one comes back blocked on a
 question, raise it with `AskUserQuestion`; on an answer, re-run that followup's subagent
-with the answer appended, otherwise record it as skipped. Don't ask "continue?" between
-followups.
+with the answer appended, otherwise record it as skipped. 
+### Pause after each followup
+
+When a subagent finishes, show the user: the followup title and status, a one-line summary,
+files changed, the acceptance criteria verified or not, and the item's diff (abbreviated if
+long; mention the full `git diff-tree -p` command). For a probe that found nothing, say so —
+there is no diff. Then `AskUserQuestion`:
+
+- **Continue** — accept the change as is and move on to the next followup.
+- **Revise** — the user gives feedback (free text or via "Other"). Re-run that followup's
+  subagent with the feedback appended and the current state described, on top of the existing
+  changes, then pause again on the new diff.
+- **Undo** — reverse-apply this item's patch and record it as skipped.
+- **Stop** — end the run here; remaining followups are recorded as not attempted.
+
+Never start the next followup until the user has answered. This replaces any "continue?"
+batching — one item, one pause.
 
 ## After all followups
 
-1. Print a tally: addressed vs. skipped (with a one-clause reason for each skip).
+1. Print a tally: addressed vs. skipped (with a one-clause reason for each skip). List probes separately: bugs found and fixed vs. no bugs found (the latter leave no changes).
 2. List the files modified, grouped by followup.
 3. Note any acceptance criteria you couldn't verify and why.
 4. **Do not commit** — the user decides when and how to commit (followups may warrant separate commits).

@@ -146,6 +146,23 @@ executing agent has no memory of this session:
 - **Acceptance criteria** — how the agent knows it's done.
 - **Scope guard** — what's explicitly out of scope, so it doesn't sprawl.
 
+### Probe handoff prompts
+
+A followup that would normally be "write tests" can instead be recorded as a **probe**
+(`Mode: probe`; everything else is `Mode: deliver`). The tests are throwaway: they exist to
+exercise the new functionality and surface bugs, not to be submitted. A probe prompt has the
+same four parts, with these differences:
+
+- **The task** — write tests for the named behaviours/edge cases (in scratch space or as
+  uncommitted files in the tree's normal test location), run them, and triage each failure:
+  is it a real implementation bug, or a wrong expectation / test mistake?
+- **Acceptance criteria** — every named behaviour was exercised; each failure is classified
+  with evidence. If real bugs were found: the *minimal fix* is applied, nothing else. If none:
+  **no files changed**.
+- **Scope guard** — delete the probe tests before finishing (the deliverable is the bug fix,
+  never the tests); don't fix test-only problems, style, or unrelated code. Report the failing
+  case for each bug found so the user can choose to keep it as a regression test.
+
 Both skills record accepted followups into `REVIEW.md` (when it exists) under their own
 section, then re-render the HTML — never fabricate the file if absent.
 
@@ -175,6 +192,8 @@ option's `preview` field so it can be read side by side with the decision:
 - **Skip** — drop it, move straight to the next item.
 - **Discuss** — free-form conversation to refine or challenge, then **re-present the same
   item** with `AskUserQuestion`, scope revised per the discussion.
+- A skill may add an option for specific candidates (`followup` adds **Accept as probe** for
+  `tests` items) — still at most four options, same no-batching rule.
 
 Never ask "continue?" between items.
 

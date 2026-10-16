@@ -87,6 +87,7 @@ function codex::sandbox::_run --description "Run codex (OpenAI) inside the revie
         -w /workspace \
         -v "$gitconfig_file":/home/claude/.gitconfig:ro,z \
         -v ~/.claude/skills:/home/claude/.agents/skills:ro,z \
+        -v ~/.wakatime.cfg:/home/claude/.wakatime.cfg:ro,z \
         -v "$agents_file":/home/claude/.codex/AGENTS.md:ro,z \
         -v "$codex_sessions_dir":/home/claude/.codex/sessions:Z \
         -e GH_TOKEN=(cat $token_file) \

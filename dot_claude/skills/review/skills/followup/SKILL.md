@@ -67,11 +67,28 @@ Follow the shared walk-and-record loop in `../../CONVENTIONS.md`. Question text 
 **Proposed scope:** [what the followup would concretely change/add, tight enough to hand to an agent.]
 ```
 
+### Test candidates: offer a probe
+
+When a candidate's category is `tests` (or its scope is mostly "add tests for the new
+behaviour"), add a fourth option to the `AskUserQuestion`, **"Accept as probe"**, alongside
+Accept / Skip / Discuss:
+
+- **Accept** — the tests themselves are the deliverable, to be submitted.
+- **Accept as probe** — the tests are a *means*: write them to exercise the new functionality
+  and hunt for real bugs, discard them, and submit something only if a bug is found.
+
+Say in the question which behaviours/edge cases the probe would target — that's where the
+bug-finding value is, so pick paths the PR changed that nothing exercises, not trivia. A probe
+is recorded with `Mode: probe`; every other followup is `Mode: deliver`.
+
 ## Build each accepted followup's prompt
 
 Follow the shared handoff-prompt format in `../../CONVENTIONS.md`. Here, "what and where"
 means the repo (`<org>/<repo>`) and that this is post-merge followup to **PR #N — "<title>"**
 (include the merge commit SHA if merged), plus the specific files/areas.
+
+For a **probe**, use the probe prompt shape in `../../CONVENTIONS.md` ("Probe handoff
+prompts") instead: name the behaviours to exercise and what a *real* bug means here.
 
 Write it as a prompt addressed to the agent ("In `<org>/<repo>`, following PR #N … do X. …"), not as a description of a prompt.
 

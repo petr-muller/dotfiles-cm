@@ -62,3 +62,35 @@ status_line = [
 # call) — closest equivalent to Claude's `--name`, and it composes with the
 # spinner instead of racing it.
 terminal_title = ["spinner", "thread"]
+
+# WakaTime heartbeats, same claude-code-wakatime binary the Claude hooks use
+# (Codex hook stdin carries the same session_id/transcript_path/cwd/
+# hook_event_name fields it reads). ~/.wakatime.cfg is mounted by
+# codex::sandbox::_run. Codex transcripts aren't Claude-shaped, so heartbeats
+# land as the generic "claude code" app entity with the project folder.
+[[hooks.SessionStart]]
+[[hooks.SessionStart.hooks]]
+type = "command"
+command = "claude-code-wakatime"
+
+[[hooks.UserPromptSubmit]]
+[[hooks.UserPromptSubmit.hooks]]
+type = "command"
+command = "claude-code-wakatime"
+
+[[hooks.PreToolUse]]
+matcher = "*"
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = "claude-code-wakatime"
+
+[[hooks.PostToolUse]]
+matcher = "*"
+[[hooks.PostToolUse.hooks]]
+type = "command"
+command = "claude-code-wakatime"
+
+[[hooks.Stop]]
+[[hooks.Stop.hooks]]
+type = "command"
+command = "claude-code-wakatime"
