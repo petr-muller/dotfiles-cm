@@ -99,9 +99,12 @@ RUN cargo install cargo-nextest --locked
 # the [mcp_servers.gopls] entry in codex-config.toml below.
 # govulncheck: reachability-aware Go vuln scan, used by the review:depbump
 # skill to tell which advisories a bump fixes/introduces in code we call.
+# GOTOOLCHAIN=auto: Fedora pins GOTOOLCHAIN=local, but gopls@latest often
+# requires a newer Go than the distro's golang package; let go fetch it.
 ENV GOBIN=/home/claude/.local/bin \
     PATH=/home/claude/.local/bin:$PATH
 RUN mkdir -p /home/claude/.local/bin && \
+    export GOTOOLCHAIN=auto && \
     go install golang.org/x/tools/gopls@latest && \
     go install github.com/isaacphi/mcp-language-server@latest && \
     go install golang.org/x/vuln/cmd/govulncheck@latest

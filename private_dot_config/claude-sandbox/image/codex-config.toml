@@ -94,3 +94,22 @@ command = "claude-code-wakatime"
 [[hooks.Stop.hooks]]
 type = "command"
 command = "claude-code-wakatime"
+
+# Recorded hook trust decisions (what `/hooks` writes). The container is --rm,
+# so without these Codex asks to review the hooks above on every launch.
+# Hashes cover the hook definitions above: if you change a hook, re-trust via
+# `/hooks` in a sandbox session and update the matching entry here.
+[hooks.state."/home/claude/.codex/config.toml:session_start:0:0"]
+trusted_hash = "sha256:3a609d4596457b13605e6b90cc121c55268610f80a7ffd09f225bcf951d8745f"
+
+[hooks.state."/home/claude/.codex/config.toml:user_prompt_submit:0:0"]
+trusted_hash = "sha256:f0adacfd2aa9c6acaa17fade7790dde4a32e662400b17fe127156e58b3530a52"
+
+[hooks.state."/home/claude/.codex/config.toml:pre_tool_use:0:0"]
+trusted_hash = "sha256:9434723b8e9c3c4fa4e759a29fd5e41ce0c0088980a4ded862366f208c5d719a"
+
+[hooks.state."/home/claude/.codex/config.toml:post_tool_use:0:0"]
+trusted_hash = "sha256:5cabbbef6b9691729107c4bd01a2da43b0fbd5a21547ae6187444afeb1a0f46e"
+
+[hooks.state."/home/claude/.codex/config.toml:stop:0:0"]
+trusted_hash = "sha256:df93fa901d4cfc88cd3aac34d39d745e6bacbc7258ec05e6843e5c60e925452a"
