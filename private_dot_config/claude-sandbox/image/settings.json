@@ -76,5 +76,14 @@
         ]
       }
     ]
+  },
+  "modelPicker": {
+    "options": [
+      {
+        "model": "rits/zai-org/glm-5-3",
+        "label": "GLM 5.3",
+        "description": "Hosted via EnMaaS"
+      }
+    ]
   }
 }

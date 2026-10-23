@@ -1,0 +1,8 @@
+# Baked into the image at /home/claude/.codex/enmaas-glm.config.toml (see
+# Containerfile) and layered over config.toml by `codex --profile
+# enmaas-glm`, which codex::sandbox::_run passes in --glm mode. Kept separate
+# from the GPT profile because GLM needs no service_tier override, and
+# conversation history doesn't carry across model families (GLM reasoning
+# items are rejected by GPT models), so switch with a fresh session.
+model = "rits/zai-org/glm-5-3"
+model_provider = "enmaas"

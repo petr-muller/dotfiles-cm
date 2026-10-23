@@ -1,4 +1,4 @@
-function claude::prune::scan --description "Report ~/.claude/projects session dirs whose real working directory no longer exists"
+function claude::prune::scan --description "Report ~/.claude{,-redhat}/projects session dirs whose real working directory no longer exists"
     set -l orphans (claude::prune::_orphans)
     if test (count $orphans) -eq 0
         echo "No orphaned session directories found."

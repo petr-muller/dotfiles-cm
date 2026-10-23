@@ -1,4 +1,4 @@
-function claude::prune::gc --description "Delete orphaned ~/.claude/projects session dirs (no matching real directory), after one batch confirmation"
+function claude::prune::gc --description "Delete orphaned ~/.claude{,-redhat}/projects session dirs (no matching real directory), after one batch confirmation"
     set -l orphans (claude::prune::_orphans)
     if test (count $orphans) -eq 0
         echo "Nothing to do."

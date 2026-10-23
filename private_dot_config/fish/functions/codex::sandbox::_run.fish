@@ -1,4 +1,4 @@
-function codex::sandbox::_run --description "Run codex (OpenAI) inside the review-sandbox image against the current worktree as <identity> (reviewer/author); internal, called by codex_redhat_{,authoring_}sandboxed. Mode-specific env comes in via the caller-set \$__claude_sandbox_extra_args list (shared with claude::sandbox::_run)."
+function codex::sandbox::_run --description "Run codex (OpenAI) inside the review-sandbox image against the current worktree as <identity> (reviewer/author); internal, called by codex_redhat_{,authoring_}sandboxed. Mode-specific env comes in via the caller-set \$__claude_sandbox_extra_args list (shared with claude::sandbox::_run). Uses GPT through the EnMaaS gateway, unless the caller set \$__codex_sandbox_provider to glm/deepseek (GLM/DeepSeek through EnMaaS) or openai (OpenAI directly)."
     set -l identity $argv[1]
     set -l args $argv[2..-1]
 
@@ -7,7 +7,27 @@ function codex::sandbox::_run --description "Run codex (OpenAI) inside the revie
 
     set -l token_file ~/.config/claude-sandbox/secrets/gh-$identity-token
     set -l gitconfig_file ~/.config/claude-sandbox/gitconfig-$identity
-    set -l openai_key_file ~/.config/claude-sandbox/secrets/openai-api-key
+
+    # Provider: GPT through EnMaaS (the image's `enmaas` profile) by default,
+    # GLM/DeepSeek through EnMaaS (`enmaas-glm`/`enmaas-deepseek`) or OpenAI directly (the image's base
+    # config) per the caller-set __codex_sandbox_provider. Only the selected
+    # provider's key enters the container, so entrypoint.sh only runs
+    # `codex login` in OpenAI mode.
+    set -l provider_args
+    set -l codex_profile_args
+    switch "$__codex_sandbox_provider"
+        case openai
+            set provider_args -e OPENAI_API_KEY=(cat ~/.config/claude-sandbox/secrets/openai-api-key)
+        case glm
+            set provider_args -e ENMAAS_KEY=(cat ~/.config/claude-sandbox/secrets/enmaas-api-key)
+            set codex_profile_args --profile enmaas-glm
+        case deepseek
+            set provider_args -e ENMAAS_KEY=(cat ~/.config/claude-sandbox/secrets/enmaas-api-key)
+            set codex_profile_args --profile enmaas-deepseek
+        case '*'
+            set provider_args -e ENMAAS_KEY=(cat ~/.config/claude-sandbox/secrets/enmaas-api-key)
+            set codex_profile_args --profile enmaas
+    end
 
     # Same CPU policy as claude::sandbox::_run: cap reviewer sessions, leave
     # author (work::) sessions unrestricted.
@@ -91,7 +111,7 @@ function codex::sandbox::_run --description "Run codex (OpenAI) inside the revie
         -v "$agents_file":/home/claude/.codex/AGENTS.md:ro,z \
         -v "$codex_sessions_dir":/home/claude/.codex/sessions:Z \
         -e GH_TOKEN=(cat $token_file) \
-        -e OPENAI_API_KEY=(cat $openai_key_file) \
+        $provider_args \
         -e TERM=xterm-256color \
         -e COLORTERM="$COLORTERM" \
         -e KITTY_WINDOW_ID="$KITTY_WINDOW_ID" \
@@ -105,5 +125,5 @@ function codex::sandbox::_run --description "Run codex (OpenAI) inside the revie
         $jira_mount_args \
         $__claude_sandbox_extra_args
 
-    podman run $podman_args claude-review-sandbox:latest codex $args
+    podman run $podman_args claude-review-sandbox:latest codex $codex_profile_args $args
 end

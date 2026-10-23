@@ -61,7 +61,7 @@ says** (quote the deprecation note / release line). Otherwise follow the shared 
 shape in `../../CONVENTIONS.md` — necessity guidance in particular: a deprecation we call is
 a real *must/should*, a shiny feature we'd never use is not an opportunity.
 
-Drop non-opportunities: anything that's actually a *bug* the bump introduces (that belongs in `/review:depbump`, possibly blocking), and abstract niceties with no call site of ours. Order most necessary / most valuable first.
+Never drop a *bug* the bump introduces (a breaking change or regression that hits our call sites): it's not an improvement opportunity, but it's exactly the kind of unresolved finding the shared candidate shape says to surface. Include it (category `regression`), mark it `must`/`should`, and note whether `/review:depbump` already caught it; if the PR is still open and it's a genuine merge blocker, flag it as such and mention `/review:gate`. Drop only abstract niceties with no call site of ours. Order bugs first, then most necessary / most valuable.
 
 If there are no real opportunities, say so — but still record that outcome before stopping, so
 a later reader of the artifacts doesn't mistake "never ran" for "found nothing". **Whenever

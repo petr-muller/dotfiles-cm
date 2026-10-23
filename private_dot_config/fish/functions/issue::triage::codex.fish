@@ -1,4 +1,14 @@
-function issue::triage::codex --description "Launch codex inside an issue triage worktree (RH identity only)"
+function issue::triage::codex --description "Launch codex inside an issue triage worktree (RH identity only; GPT through EnMaaS by default, --glm for GLM, --deepseek for DeepSeek, --openai for OpenAI directly)"
+    argparse -x openai,glm,deepseek openai glm deepseek -- $argv
+    or return 1
+    set -l provider_flag
+    set -q _flag_openai
+    and set provider_flag --openai
+    set -q _flag_glm
+    and set provider_flag --glm
+    set -q _flag_deepseek
+    and set provider_flag --deepseek
+
     set -l toplevel (git rev-parse --show-toplevel 2>/dev/null)
     if test -z "$toplevel"
         echo "Not in a git repository" >&2
@@ -27,7 +37,7 @@ function issue::triage::codex --description "Launch codex inside an issue triage
 
     if codex::sandbox::_resumable reviewer $toplevel
         echo "Resuming existing session for $toplevel."
-        codex_redhat_sandboxed resume --last
+        codex_redhat_sandboxed $provider_flag resume --last
         return
     end
 
@@ -41,5 +51,5 @@ function issue::triage::codex --description "Launch codex inside an issue triage
 TRIAGE.md already exists in this worktree from an earlier triage of this issue. Do NOT start a new triage. Run the \$triage:refresh skill (/home/claude/.agents/skills/triage/skills/refresh/SKILL.md) to inspect issue activity since that triage and update the artifacts or recommend a full re-triage."
     end
 
-    codex_redhat_sandboxed "$prompt"
+    codex_redhat_sandboxed $provider_flag "$prompt"
 end

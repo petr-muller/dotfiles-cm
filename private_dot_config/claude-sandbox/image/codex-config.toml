@@ -27,6 +27,17 @@ model = "gpt-6-luna"
 # were ever skipped.
 forced_login_method = "api"
 
+# Red Hat's EnMaaS gateway (OpenAI-compatible Responses API). Selected via
+# the `enmaas` (GPT, default), `enmaas-glm` (--glm) or `enmaas-deepseek`
+# (--deepseek) profile, which
+# codex::sandbox::_run passes; ENMAAS_KEY is only set in those modes.
+# --openai mode skips the profiles and uses the OpenAI defaults above.
+[model_providers.enmaas]
+name = "EnMaaS"
+base_url = "https://api.enmaas.devshift.net/v1"
+env_key = "ENMAAS_KEY"
+wire_api = "responses"
+
 # Skip the per-directory trust prompt: cwd inside the container is always
 # /workspace regardless of which host worktree is mounted, so this one
 # entry covers every worktree permanently.

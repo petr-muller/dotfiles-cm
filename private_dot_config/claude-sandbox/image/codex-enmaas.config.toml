@@ -1,0 +1,10 @@
+# Baked into the image at /home/claude/.codex/enmaas.config.toml (see
+# Containerfile) and layered over config.toml by `codex --profile enmaas`,
+# which codex::sandbox::_run passes by default (OpenAI GPT models through
+# EnMaaS). The [model_providers.enmaas] definition lives in config.toml.
+model = "gpt-6-luna"
+model_provider = "enmaas"
+
+# GPT models: Codex otherwise requests a service tier the EnMaaS gateway
+# rejects.
+service_tier = "default"

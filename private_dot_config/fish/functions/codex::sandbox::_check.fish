@@ -1,4 +1,4 @@
-function codex::sandbox::_check --description "Preflight checks for codex::sandbox::_run: image built, <identity> (reviewer/author) secrets present, OpenAI API key present"
+function codex::sandbox::_check --description "Preflight checks for codex::sandbox::_run: image built, <identity> (reviewer/author) secrets present, provider (EnMaaS, or OpenAI with __codex_sandbox_provider=openai) API key present"
     set -l identity $argv[1]
 
     if not podman image exists claude-review-sandbox:latest
@@ -17,8 +17,13 @@ function codex::sandbox::_check --description "Preflight checks for codex::sandb
         return 1
     end
 
-    if not test -f ~/.config/claude-sandbox/secrets/openai-api-key
+    if test "$__codex_sandbox_provider" = openai; and not test -f ~/.config/claude-sandbox/secrets/openai-api-key
         echo "Missing ~/.config/claude-sandbox/secrets/openai-api-key (OpenAI API key for sandboxed Codex sessions). See ~/.config/claude-sandbox/README.md." >&2
+        return 1
+    end
+
+    if test "$__codex_sandbox_provider" != openai; and not test -f ~/.config/claude-sandbox/secrets/enmaas-api-key
+        echo "Missing ~/.config/claude-sandbox/secrets/enmaas-api-key (EnMaaS key for sandboxed Codex sessions; pass --openai to use OpenAI instead)." >&2
         return 1
     end
 end

@@ -1,0 +1,7 @@
+# Baked into the image at /home/claude/.codex/enmaas-deepseek.config.toml (see
+# Containerfile) and layered over config.toml by `codex --profile
+# enmaas-deepseek`, which codex::sandbox::_run passes in --deepseek mode.
+# Same rationale as enmaas-glm: no service_tier override, and conversation
+# history doesn't carry across model families, so switch with a fresh session.
+model = "rits/deepseek-ai/DeepSeek-V4.1-Flash-1017"
+model_provider = "enmaas"

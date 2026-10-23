@@ -1,6 +1,10 @@
-function claude::prune::_orphans --description "Internal: print absolute paths of ~/.claude/projects/* dirs whose real working directory no longer exists"
-    set -l sessions_dir $HOME/.claude/projects
-    if not test -d $sessions_dir
+function claude::prune::_orphans --description "Internal: print absolute paths of ~/.claude{,-redhat}/projects/* dirs whose real working directory no longer exists"
+    # ~/.claude-redhat is claude_redhat's CLAUDE_CONFIG_DIR (see config.fish).
+    set -l sessions_dirs
+    for d in $HOME/.claude/projects $HOME/.claude-redhat/projects
+        test -d $d; and set -a sessions_dirs $d
+    end
+    if test (count $sessions_dirs) -eq 0
         return 0
     end
 
@@ -15,7 +19,7 @@ function claude::prune::_orphans --description "Internal: print absolute paths o
     # workflows always `cd` to the worktree root before launching `claude`
     # (see CLAUDE.md's "stay inside the worktree"), so nothing deeper is
     # needed there.
-    for c in $HOME $HOME/.claude $HOME/Projects/Worktrees/*/*/*/*
+    for c in $HOME $HOME/.claude $HOME/.claude-redhat $HOME/Projects/Worktrees/*/*/*/*
         string trim -r -c / -- $c
     end > $tmp/real.txt
 
@@ -32,12 +36,14 @@ function claude::prune::_orphans --description "Internal: print absolute paths o
     # space-separated directory names) with '-'.
     sed -E 's/[^A-Za-z0-9]/-/g' -- $tmp/real.txt | sort -u > $tmp/encoded.txt
 
-    for d in $sessions_dir/*/
-        basename (string trim -r -c / -- $d)
-    end | sort -u > $tmp/sessions.txt
+    for sessions_dir in $sessions_dirs
+        for d in $sessions_dir/*/
+            basename (string trim -r -c / -- $d)
+        end | sort -u > $tmp/sessions.txt
 
-    for name in (comm -23 $tmp/sessions.txt $tmp/encoded.txt)
-        echo $sessions_dir/$name
+        for name in (comm -23 $tmp/sessions.txt $tmp/encoded.txt)
+            echo $sessions_dir/$name
+        end
     end
 
     rm -rf $tmp

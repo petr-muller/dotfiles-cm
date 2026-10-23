@@ -1,9 +1,23 @@
-function pr::summarize::codex --description "Launch codex inside a PR summarize worktree (RH identity only)"
-    argparse 'M/model=' -- $argv
+function pr::summarize::codex --description "Launch codex inside a PR summarize worktree (RH identity only; GPT through EnMaaS by default, --glm for GLM, --deepseek for DeepSeek, --openai for OpenAI directly)"
+    argparse -x openai,glm,deepseek 'M/model=' openai glm deepseek -- $argv
     or return 1
 
+    # GPT modes (EnMaaS default, --openai) default to gpt-6-luna; --glm and
+    # --deepseek use their enmaas-* profile's pinned model unless -M is given.
+    set -l provider_flag
+    set -l model_args
+    set -q _flag_openai
+    and set provider_flag --openai
+    if set -q _flag_glm
+        set provider_flag --glm
+    else if set -q _flag_deepseek
+        set provider_flag --deepseek
+    else
+        set -q _flag_model
+        or set _flag_model gpt-6-luna
+    end
     set -q _flag_model
-    or set -l _flag_model gpt-6-luna
+    and set model_args --model $_flag_model
 
     set -l toplevel (git rev-parse --show-toplevel 2>/dev/null)
     if test -z "$toplevel"
@@ -33,9 +47,9 @@ function pr::summarize::codex --description "Launch codex inside a PR summarize 
 
     if codex::sandbox::_resumable reviewer $toplevel
         echo "Resuming existing session for $toplevel."
-        codex_redhat_sandboxed resume --last
+        codex_redhat_sandboxed $provider_flag resume --last
         return
     end
 
-    codex_redhat_sandboxed --model $_flag_model "Summarizing PR #$pr_number in $org/$repo: $title"
+    codex_redhat_sandboxed $provider_flag $model_args "Summarizing PR #$pr_number in $org/$repo: $title"
 end

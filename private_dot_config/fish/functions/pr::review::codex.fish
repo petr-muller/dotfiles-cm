@@ -1,4 +1,14 @@
-function pr::review::codex --description "Launch codex inside a PR review worktree (RH identity only)"
+function pr::review::codex --description "Launch codex inside a PR review worktree (RH identity only; GPT through EnMaaS by default, --glm for GLM, --deepseek for DeepSeek, --openai for OpenAI directly)"
+    argparse -x openai,glm,deepseek openai glm deepseek -- $argv
+    or return 1
+    set -l provider_flag
+    set -q _flag_openai
+    and set provider_flag --openai
+    set -q _flag_glm
+    and set provider_flag --glm
+    set -q _flag_deepseek
+    and set provider_flag --deepseek
+
     set -l toplevel (git rev-parse --show-toplevel 2>/dev/null)
     if test -z "$toplevel"
         echo "Not in a git repository" >&2
@@ -29,7 +39,7 @@ function pr::review::codex --description "Launch codex inside a PR review worktr
 
     if codex::sandbox::_resumable reviewer $toplevel
         echo "Resuming existing session for $toplevel."
-        codex_redhat_sandboxed resume --last
+        codex_redhat_sandboxed $provider_flag resume --last
         return
     end
 
@@ -51,5 +61,5 @@ REVIEW.md already exists in this worktree from an earlier review of this PR. Do 
 This PR is a dependency bump (author: $author). Review it with the \$review:depbump skill ($skills/depbump/SKILL.md) rather than a generic full code review."
     end
 
-    codex_redhat_sandboxed "$prompt"
+    codex_redhat_sandboxed $provider_flag "$prompt"
 end

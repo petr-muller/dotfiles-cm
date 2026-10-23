@@ -5,20 +5,27 @@ set CLUSTER_BOT_EXTRACTED_PAYLOAD {{ .chezmoi.homeDir }}/Temporary/cluster-bot-p
 
 set -gx CONTAINER_ENGINE podman
 
-set -gx CLAUDE_CODE_USE_VERTEX 1
-set -gx CLOUD_ML_REGION global
-set -gx ANTHROPIC_VERTEX_PROJECT_ID itpc-ca-b9b26cb46d
+set -l enmaas_key_file ~/.config/claude-sandbox/secrets/enmaas-api-key
+if test -r $enmaas_key_file
+    set -gx ANTHROPIC_BASE_URL https://api.enmaas.devshift.net
+    set -gx ANTHROPIC_API_KEY (cat $enmaas_key_file)
+    set -gx CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY 1
+end
 
 set -g blue "#268BD2"
 set -g green "#859900"
 set -g red "#DC322F"
 
 function claude_redhat
-    claude $argv
+    if not set -q ANTHROPIC_API_KEY
+        echo "claude_redhat: missing EnMaaS key at ~/.config/claude-sandbox/secrets/enmaas-api-key" >&2
+        return 1
+    end
+    env -u CLAUDE_CODE_USE_VERTEX -u ANTHROPIC_VERTEX_PROJECT_ID -u CLOUD_ML_REGION CLAUDE_CONFIG_DIR=$HOME/.claude-redhat claude $argv
 end
 
 function claude_mine
-    CLAUDE_CODE_USE_VERTEX= CLOUD_ML_REGION= ANTHROPIC_VERTEX_PROJECT_ID= claude $argv
+    ANTHROPIC_BASE_URL= ANTHROPIC_API_KEY= CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY= claude $argv
 end
 
 function header
