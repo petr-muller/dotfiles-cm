@@ -208,6 +208,8 @@ Known gaps vs. the Claude flows:
   checks that dir for `*.jsonl` files; each `*::codex` entrypoint passes
   `resume --last` automatically when one exists, otherwise starts fresh
   seeded with an initial prompt describing the PR/issue.
+  `codex::prune::scan`/`codex::prune::gc` report/delete the
+  `codex-{sessions,agents}-*` state of worktrees that no longer exist.
 - No `--name`/`/color` equivalent (Codex has no TUI session title/color
   concept).
 
