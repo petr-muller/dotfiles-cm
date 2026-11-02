@@ -74,14 +74,25 @@ advisory still open at the new version is a finding.
 
 **Reachability (Go)** — OSV says an advisory exists for the module version; `govulncheck`
 says whether our code actually calls the affected symbols, which feeds straight into the
-exposure judgment in step 3. Run it at **both** the merge-base and the PR head and compare,
-so the report says which *reachable* vulns the bump fixes and whether it introduces any:
+exposure judgment in step 3. Check **both** the merge-base and the PR head and compare, so
+the report says which *reachable* vulns the bump fixes and whether it introduces any.
+
+Start with a module-level scan of each side: it is quick and needs no type-checking, while
+a symbol-level scan is very CPU- and memory-heavy. Only run the symbol-level scan on a side
+where the module-level scan found something. A side with no module-level findings can't
+have reachable ones, so report it as "no advisories".
 
 ```
 base=$(git merge-base HEAD <upstream>/<base-branch>)
 git worktree add --detach /tmp/depbump-base "$base"
+(cd /tmp/depbump-base && govulncheck -scan module -format json > /tmp/govuln-mod-base.json)
+govulncheck -scan module -format json > /tmp/govuln-mod-head.json
+
+# Only for a side with findings:
+#   jq -e 'select(.finding)' /tmp/govuln-mod-<side>.json > /dev/null
 (cd /tmp/depbump-base && govulncheck -format json ./... > /tmp/govuln-base.json)
 govulncheck -format json ./... > /tmp/govuln-head.json
+
 git worktree remove --force /tmp/depbump-base
 ```
 
@@ -90,7 +101,10 @@ Compare the `finding` entries by OSV id. A `trace` runs from the vulnerable symb
 **called**; if only `package`/`module` are set, it's imported or required but not called,
 and weighs much less. Notes:
 - On very large repos, scope the pattern (e.g. `./cmd/... ./pkg/...`) if `./...` is too slow.
-- It must type-check the module. If it fails at head but not at base, the bump breaks the
+  Module-level scans take no patterns.
+- In the sandbox, symbol-level scans run one at a time across containers, so one may wait
+  for another (it says so on stderr). Allow a long command timeout.
+- A symbol-level scan must type-check the module. If it fails at head but not at base, the bump breaks the
   build — that is a finding in itself.
 - It needs network access to `vuln.go.dev`.
 - If it can't run (not installed, build failure, no network), say so in the output with the

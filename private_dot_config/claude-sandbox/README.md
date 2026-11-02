@@ -246,6 +246,17 @@ routes through the shared `pr::_private_content`, which calls
 default to Sonnet 5 instead of falling back to Claude Code's own default,
 while any override you (or a previous default) already set is left alone.
 
+## govulncheck
+
+govulncheck has no cache of its own: every symbol-level scan type-checks the
+whole dependency tree and builds a call graph in memory, so concurrent scans
+across sessions can swamp the host. `govulncheck` in the image is therefore
+`image/govulncheck-wrapper.sh`, which runs them one at a time at `nice` 10,
+using a lock in `~/.cache/claude-sandbox/sandbox-locks` (mounted into Claude
+and Codex containers). The real binary is at `~/.local/libexec/govulncheck`.
+`-scan module`, which is cheap, skips the queue. A queued scan prints a message
+on stderr, and it can outlast a short agent command timeout.
+
 ## Known limitations (v1)
 
 - No network egress restriction; container gets the default podman bridge

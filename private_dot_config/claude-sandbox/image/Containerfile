@@ -99,15 +99,18 @@ RUN cargo install cargo-nextest --locked
 # the [mcp_servers.gopls] entry in codex-config.toml below.
 # govulncheck: reachability-aware Go vuln scan, used by the review:depbump
 # skill to tell which advisories a bump fixes/introduces in code we call.
+# The real binary moves off PATH: `govulncheck` is govulncheck-wrapper.sh
+# (copied in below), which runs scans across containers one at a time.
 # GOTOOLCHAIN=auto: Fedora pins GOTOOLCHAIN=local, but gopls@latest often
 # requires a newer Go than the distro's golang package; let go fetch it.
 ENV GOBIN=/home/claude/.local/bin \
     PATH=/home/claude/.local/bin:$PATH
-RUN mkdir -p /home/claude/.local/bin && \
+RUN mkdir -p /home/claude/.local/bin /home/claude/.local/libexec && \
     export GOTOOLCHAIN=auto && \
     go install golang.org/x/tools/gopls@latest && \
     go install github.com/isaacphi/mcp-language-server@latest && \
-    go install golang.org/x/vuln/cmd/govulncheck@latest
+    go install golang.org/x/vuln/cmd/govulncheck@latest && \
+    mv /home/claude/.local/bin/govulncheck /home/claude/.local/libexec/govulncheck
 
 # Skeleton ~/.claude so per-run bind mounts (files and dirs) have a valid
 # target to land on - podman errors bind-mounting onto a path that doesn't
@@ -116,6 +119,7 @@ RUN mkdir -p \
         /home/claude/.claude/commands \
         /home/claude/.claude/plugins \
         /home/claude/.claude/projects \
+        /home/claude/.cache/sandbox-locks \
         /home/claude/.config/gcloud \
         /home/claude/.kube \
         /home/claude/.agents/skills \
@@ -137,6 +141,7 @@ COPY --chown=claude:claude codex-enmaas.config.toml /home/claude/.codex/enmaas.c
 COPY --chown=claude:claude codex-enmaas-glm.config.toml /home/claude/.codex/enmaas-glm.config.toml
 COPY --chown=claude:claude codex-enmaas-deepseek.config.toml /home/claude/.codex/enmaas-deepseek.config.toml
 COPY --chown=claude:claude entrypoint.sh /home/claude/entrypoint.sh
-RUN chmod +x /home/claude/entrypoint.sh
+COPY --chown=claude:claude govulncheck-wrapper.sh /home/claude/.local/bin/govulncheck
+RUN chmod +x /home/claude/entrypoint.sh /home/claude/.local/bin/govulncheck
 
 ENTRYPOINT ["/home/claude/entrypoint.sh"]

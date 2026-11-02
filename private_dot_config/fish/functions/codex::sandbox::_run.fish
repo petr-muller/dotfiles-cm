@@ -96,7 +96,9 @@ function codex::sandbox::_run --description "Run codex (OpenAI) inside the revie
     # sandbox can't poison host builds. Worktree is always /workspace, so
     # cache keys stay stable across worktrees.
     set -l go_cache_root ~/.cache/claude-sandbox
-    mkdir -p $go_cache_root/go-build $go_cache_root/go-mod
+    # sandbox-locks: flock files shared by all sandbox containers, used by the
+    # image's govulncheck wrapper to run scans one at a time.
+    mkdir -p $go_cache_root/go-build $go_cache_root/go-mod $go_cache_root/sandbox-locks
 
     set -l podman_args \
         --rm -it --userns=keep-id:uid=1000,gid=1000 \
@@ -104,6 +106,7 @@ function codex::sandbox::_run --description "Run codex (OpenAI) inside the revie
         -v "$worktree":/workspace:Z \
         -v $go_cache_root/go-build:/home/claude/.cache/go-build:z \
         -v $go_cache_root/go-mod:/home/claude/go/pkg/mod:z \
+        -v $go_cache_root/sandbox-locks:/home/claude/.cache/sandbox-locks:z \
         -w /workspace \
         -v "$gitconfig_file":/home/claude/.gitconfig:ro,z \
         -v ~/.claude/skills:/home/claude/.agents/skills:ro,z \

@@ -38,6 +38,13 @@ base_url = "https://api.enmaas.devshift.net/v1"
 env_key = "ENMAAS_KEY"
 wire_api = "responses"
 
+# request_user_input (the interactive per-item question UI that skills like
+# review:followup rely on) is only offered in Plan collaboration mode by
+# default; in Default mode Codex rejects it. Sessions start in Default mode
+# unless toggled (Shift+Tab), hence the "random" failures. Enable it there too.
+[features]
+default_mode_request_user_input = true
+
 # Skip the per-directory trust prompt: cwd inside the container is always
 # /workspace regardless of which host worktree is mounted, so this one
 # entry covers every worktree permanently.
