@@ -71,3 +71,9 @@ Do all gathering and the artifact edit first, without narrating between tool cal
 - The absolute paths of `TRIAGE.md` and `TRIAGE.html`.
 
 Be specific — names, labels, SHAs, PR numbers, exact command text. No emoji, no filler. Never claim an action was taken; every item here is a suggestion awaiting explicit go-ahead.
+
+**Finish timestamp (every path, including early stops):** the very last line of your final
+message must be `Finished: <local time>`, taken from `date '+%Y-%m-%d %H:%M:%S %Z'` run at the
+*end* of the work — chain it onto your last command (e.g. `python3 .../render.py X.md && date
+'+%Y-%m-%d %H:%M:%S %Z'`) rather than spending an extra call, and never reuse the gather-phase
+timestamp. Purpose: make stale runs obvious when a session is revived later.

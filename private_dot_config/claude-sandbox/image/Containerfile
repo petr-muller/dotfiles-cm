@@ -101,6 +101,9 @@ RUN cargo install cargo-nextest --locked
 # skill to tell which advisories a bump fixes/introduces in code we call.
 # The real binary moves off PATH: `govulncheck` is govulncheck-wrapper.sh
 # (copied in below), which runs scans across containers one at a time.
+# gotestsum + golangci-lint (v2): common Go test runner / linter that repo
+# Makefiles and agents reach for; baked in so sessions don't `go install`
+# them on every run.
 # GOTOOLCHAIN=auto: Fedora pins GOTOOLCHAIN=local, but gopls@latest often
 # requires a newer Go than the distro's golang package; let go fetch it.
 ENV GOBIN=/home/claude/.local/bin \
@@ -110,6 +113,8 @@ RUN mkdir -p /home/claude/.local/bin /home/claude/.local/libexec && \
     go install golang.org/x/tools/gopls@latest && \
     go install github.com/isaacphi/mcp-language-server@latest && \
     go install golang.org/x/vuln/cmd/govulncheck@latest && \
+    go install gotest.tools/gotestsum@latest && \
+    go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest && \
     mv /home/claude/.local/bin/govulncheck /home/claude/.local/libexec/govulncheck
 
 # Skeleton ~/.claude so per-run bind mounts (files and dirs) have a valid

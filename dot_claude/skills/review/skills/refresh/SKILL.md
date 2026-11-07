@@ -79,7 +79,7 @@ Then print a concise summary to the user containing:
 - Suggested action: re-run `/review` (or whichever review skill they use) and then `/review:save` — which will reset `head_sha`/`reviewed_at` and clear the need to carry `recommended_rereview` forward.
 - The two absolute file paths that were updated with the recommendation entry.
 
-End with the literal string `RECOMMENDATION: full re-review` on its own line so it's easy to grep for.
+End (just before the `Finished:` line, see Output rules) with the literal string `RECOMMENDATION: full re-review` on its own line so it's easy to grep for.
 
 ## Output rules
 
@@ -100,3 +100,10 @@ re-review" above.
 
 Be specific: names, paths, SHAs, line counts. Don't repeat existing findings — refer to
 them by title. Minimize tool calls: batch parallel fetches, one edit per file when possible.
+
+**Finish timestamp (every path, including "no activity" and early stops):** the very last
+line of your final message must be `Finished: <local time>`, taken from
+`date '+%Y-%m-%d %H:%M:%S %Z'` run at the *end* of the work — chain it onto your last command
+(e.g. `python3 .../render.py X.md && date '+%Y-%m-%d %H:%M:%S %Z'`) rather than spending an extra
+call, and never reuse the gather-phase timestamp. It goes after the `RECOMMENDATION: ...` line
+when there is one. Purpose: make stale runs obvious when a session is revived later.

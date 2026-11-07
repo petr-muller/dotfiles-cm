@@ -42,6 +42,9 @@ wire_api = "responses"
 # review:followup rely on) is only offered in Plan collaboration mode by
 # default; in Default mode Codex rejects it. Sessions start in Default mode
 # unless toggled (Shift+Tab), hence the "random" failures. Enable it there too.
+# Caveat: outside Plan mode the question is non-blocking and auto-submits an
+# empty answer after ~2 min (hardcoded, no knob). codex::sandbox::_run's
+# AGENTS.md tells the model to treat that as "not answered" and stop.
 [features]
 default_mode_request_user_input = true
 

@@ -111,3 +111,9 @@ The user sees every tool call. Do all gathering, code reading, skill invocation,
 - **Artifacts**: the absolute paths of `REVIEW.md` / `REVIEW.html` if updated; otherwise note nothing was written.
 
 Be specific — names, paths, SHAs, blast radius. No emoji, no filler, no diplomatic hedging. If a concern is unresolved, say it gates; if it's fine, say merge.
+
+**Finish timestamp (every path, including early stops):** the very last line of your final
+message must be `Finished: <local time>`, taken from `date '+%Y-%m-%d %H:%M:%S %Z'` run at the
+*end* of the work — chain it onto your last command (e.g. `python3 .../render.py X.md && date
+'+%Y-%m-%d %H:%M:%S %Z'`) rather than spending an extra call, and never reuse the gather-phase
+timestamp. Purpose: make stale runs obvious when a session is revived later.

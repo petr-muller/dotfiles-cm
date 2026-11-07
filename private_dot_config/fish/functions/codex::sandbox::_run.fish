@@ -69,6 +69,16 @@ function codex::sandbox::_run --description "Run codex (OpenAI) inside the revie
     # guidance for Codex author sessions.
     printf '\n\n# Codex: never publish without an explicit request (IMPORTANT)\n\nThis rule overrides anything above, including the CLAUDE.md guidance that `work::*` sessions push and open PRs directly.\n\nDo NOT take any GitHub-visible or otherwise outward-facing action unless the user explicitly asked for that specific action in this session. That includes: `git push`; `gh pr create`/`gh pr review`/`gh pr comment`/`gh pr merge`/`gh pr close`/`gh pr edit`; `gh issue create`/`gh issue comment`/`gh issue edit`/`gh issue close`; `gh api` calls with a non-GET method; adding labels, reactions, or review-thread resolutions; and running the `review:autopilot` or `review:watch` skills (which post to GitHub). The initial prompt describing the task (e.g. "Reviewing PR #N", "Triaging issue #N") is NOT such a request, and neither is a skill whose steps mention posting.\n\nWhen the work is done, stop at local artifacts (e.g. `REVIEW.md`/`REVIEW.html`, `TRIAGE.md`/`TRIAGE.html`, local commits) and tell the user what you would publish and the exact command; then wait for them to say so. Read-only `gh` usage (`gh pr view`, `gh pr diff`, `gh api` GETs, etc.) is fine.\n' >>$agents_file
 
+    # request_user_input outside Plan mode is non-blocking: Codex hardcodes
+    # is_blocking = (mode == Plan) in core/src/tools/handlers/
+    # request_user_input.rs, and the TUI then auto-submits an EMPTY answer
+    # (`{"answers":{}}`) after 60s hidden grace + 60s visible countdown. No
+    # config knob exists (checked upstream 2026-11-04), so the
+    # default_mode_request_user_input feature in codex-config.toml gives us
+    # the picker but with a timeout. Stop the model from treating the
+    # timeout as an answer: it ends the turn and waits for a typed reply.
+    printf '\n\n# Codex: an unanswered question is not an answer (IMPORTANT)\n\nIn this session `request_user_input` can time out: after about two minutes without interaction the UI auto-submits an empty response (`answers` empty, or a question missing from it). That means the user has NOT answered yet. It is never consent, never a selection of the first/recommended option, and never permission to decide yourself.\n\nWhen any question comes back without an answer: do not guess, do not pick a default, do not move on to the next item, and do not call `request_user_input` again in a loop. Instead end your turn with a short message restating the unanswered question and its options (numbered), then wait for the user to reply in chat. Treat their typed reply as the answer and continue from exactly that item. Skills that walk items one at a time (e.g. `review:address`, `review:followup`, `review:followup-address`) must pause this way on every timed-out item.\n' >>$agents_file
+
     set -l kube_mount_args
     set -l kubeconfig_file ~/.config/claude-sandbox/kube/$worktree_key.kubeconfig
     if test "$identity" = author; and test -f $kubeconfig_file

@@ -55,6 +55,14 @@ function pr::review::init --description "Set up a worktree to review a GitHub PR
     echo "Worktree: $worktree_path"
     echo "Branch:   $branch"
 
+    # Tab title like "review: k-s/prow #1234" (dashed org names abbreviated)
+    set -l org_repo (string split / -- (string replace -r '^github\.com/' '' $rel))
+    set -l org $org_repo[1]
+    if string match -q -- '*-*' $org
+        set org (string join - (string sub -l 1 -- (string split - -- $org)))
+    end
+    kitty::tab_title "review: $org/$org_repo[2] #$pr_number"
+
     if test -d $worktree_path
         echo "Worktree already exists — delegating to pr::review::pull."
         cd $worktree_path

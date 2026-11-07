@@ -89,7 +89,7 @@ Then print a concise summary to the user:
 - Suggested action: re-run the triage workflow and then `/triage:save`.
 - The two absolute file paths that were updated.
 
-End with the literal string `RECOMMENDATION: full re-triage` on its own line so it's easy to grep for.
+End (just before the `Finished:` line, see Output rules) with the literal string `RECOMMENDATION: full re-triage` on its own line so it's easy to grep for.
 
 ## Output rules
 
@@ -97,3 +97,10 @@ End with the literal string `RECOMMENDATION: full re-triage` on its own line so 
 - Don't repeat existing findings — refer to them by title.
 - No emoji, no filler.
 - When updating, print only the two absolute paths and a one-line summary. When recommending re-triage, print the summary described above.
+
+**Finish timestamp (every path, including "no activity" and early stops):** the very last
+line of your final message must be `Finished: <local time>`, taken from
+`date '+%Y-%m-%d %H:%M:%S %Z'` run at the *end* of the work — chain it onto your last command
+(e.g. `python3 .../render.py X.md && date '+%Y-%m-%d %H:%M:%S %Z'`) rather than spending an extra
+call, and never reuse the gather-phase timestamp. It goes after the `RECOMMENDATION: ...` line
+when there is one. Purpose: make stale runs obvious when a session is revived later.
